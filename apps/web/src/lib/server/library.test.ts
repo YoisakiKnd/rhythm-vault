@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import {
 	chunithmJacketId,
@@ -9,7 +11,10 @@ import {
 	scoreChartKey
 } from './library';
 
-describe('queryLibrary', () => {
+/** 曲库 JSON 不进 git；CI 无 sync:songs 产物时跳过依赖曲库的用例 */
+const HAS_CATALOG = existsSync(join(import.meta.dir, '../../../../../packages/data/maimaidx.json'));
+
+describe.skipIf(!HAS_CATALOG)('queryLibrary', () => {
 	test('按曲名或数字 ID 搜索', () => {
 		const byTitle = queryLibrary('maimai', { q: 'True Love Song', per: 10 });
 		expect(byTitle.total).toBeGreaterThan(0);
@@ -74,7 +79,7 @@ describe('queryLibrary', () => {
 	});
 });
 
-describe('getSongCatalog', () => {
+describe.skipIf(!HAS_CATALOG)('getSongCatalog', () => {
 	test('舞萌整曲含谱面与 chartKey', () => {
 		const s = getSongCatalog('maimai', '8');
 		expect(s?.title).toBe('True Love Song');
@@ -124,7 +129,7 @@ describe('getSongCatalog', () => {
 	});
 });
 
-describe('chartKey 交叉校验', () => {
+describe.skipIf(!HAS_CATALOG)('chartKey 交叉校验', () => {
 	test('曲库每一张谱面经 scoreChartKey 得到的键与 core 入口一致且唯一', () => {
 		for (const game of ['maimai', 'chunithm', 'djmax'] as const) {
 			const lib = getLibrary(game);
@@ -146,7 +151,7 @@ describe('chartKey 交叉校验', () => {
 	});
 });
 
-describe('chunithmJacketId', () => {
+describe.skipIf(!HAS_CATALOG)('chunithmJacketId', () => {
 	test('WE 谱用 originId 取图，普通曲仍用自身 ID', () => {
 		expect(chunithmJacketId('8000')).toBe('163');
 		expect(chunithmJacketId('3')).toBe('3');

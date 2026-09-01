@@ -1,8 +1,12 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { collectSheetSlots } from './completion';
 import { isDummyChart, isUtageSong, isWorldsEndChart } from './library';
 
-describe('collectSheetSlots', () => {
+const HAS_CATALOG = existsSync(join(import.meta.dir, '../../../../../packages/data/maimaidx.json'));
+
+describe.skipIf(!HAS_CATALOG)('collectSheetSlots', () => {
 	test('默认排除舞萌宴谱', () => {
 		const slots = collectSheetSlots('maimai', { level: '13+' });
 		expect(slots.length).toBeGreaterThan(0);

@@ -1,5 +1,5 @@
 # 构建阶段
-FROM oven/bun:1.2.5 AS build
+FROM oven/bun:1.4.0 AS build
 WORKDIR /app
 
 COPY package.json bun.lock ./

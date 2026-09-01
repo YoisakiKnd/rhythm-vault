@@ -27,7 +27,7 @@ jobs:
             file: Dockerfile.worker
             image: rhythm-vault-worker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - id: owner
         run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
