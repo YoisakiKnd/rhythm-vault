@@ -1,0 +1,85 @@
+# 本地/单机 Docker：Postgres 持久化成绩；曲库运行时从上游拉到 volume，不进镜像。
+# 本机已有 Postgres 时不要映射 5432。应用容器走内部主机名 db。
+#
+#   docker compose up --build
+# 首次把 .env 里的 ENCRYPTION_KEY / BASE_URL / OAuth 配好。
+# compose 会覆盖 DATABASE_URL 为容器网络地址，本机 .env 里的 localhost 不会进容器。
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rv
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rv}
+      POSTGRES_DB: rhythm_vault
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rv -d rhythm_vault']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgres://rv:${POSTGRES_PASSWORD:-rv}@db:5432/rhythm_vault
+    command: ['bun', 'run', '--cwd', 'packages/db', 'migrate']
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
+  sync-songs:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgres://rv:${POSTGRES_PASSWORD:-rv}@db:5432/rhythm_vault
+      RV_DATA_DIR: /app/packages/data
+    volumes:
+      - library:/app/packages/data
+    command: ['bun', 'run', '--cwd', 'apps/worker', 'sync:songs']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: 'no'
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://rv:${POSTGRES_PASSWORD:-rv}@db:5432/rhythm_vault
+      RV_DATA_DIR: /app/packages/data
+      RV_COVER_DIR: /app/.cache/covers
+    volumes:
+      - library:/app/packages/data:ro
+      - covers:/app/.cache/covers
+    ports:
+      - '3000:3000'
+    depends_on:
+      sync-songs:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://rv:${POSTGRES_PASSWORD:-rv}@db:5432/rhythm_vault
+      RV_DATA_DIR: /app/packages/data
+    volumes:
+      - library:/app/packages/data:ro
+    depends_on:
+      sync-songs:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  library:
+  covers:

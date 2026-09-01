@@ -1,0 +1,34 @@
+<script lang="ts">
+	import { formatGameRating, RATING_GAME_LABEL, urlGameFromDb } from '$lib/player-card';
+
+	let {
+		ratings,
+		hrefFor
+	}: {
+		ratings: Array<{ game: string; rating: number; button?: number }>;
+		hrefFor?: (urlGame: 'maimai' | 'chunithm' | 'djmax') => string;
+	} = $props();
+</script>
+
+{#if ratings.length === 0}
+	<p class="text-sm text-base-content/45">还没有 rating 记录。绑定数据源并同步后会出现在这里。</p>
+{:else}
+	<div class="flex flex-wrap gap-2">
+		{#each ratings as r (r.game)}
+			{@const label = RATING_GAME_LABEL[r.game] ?? r.game}
+			{@const extra = r.game === 'djmax' && r.button ? ` ${r.button}B` : ''}
+			{@const urlGame = urlGameFromDb(r.game)}
+			{#if hrefFor}
+				<a href={hrefFor(urlGame)} class="badge badge-lg badge-outline h-auto gap-1.5 py-2 px-3">
+					<span class="text-base-content/60">{label}{extra}</span>
+					<span class="font-mono font-semibold">{formatGameRating(r.game, r.rating)}</span>
+				</a>
+			{:else}
+				<span class="badge badge-lg badge-outline h-auto gap-1.5 py-2 px-3">
+					<span class="text-base-content/60">{label}{extra}</span>
+					<span class="font-mono font-semibold">{formatGameRating(r.game, r.rating)}</span>
+				</span>
+			{/if}
+		{/each}
+	</div>
+{/if}

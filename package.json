@@ -1,0 +1,25 @@
+{
+	"name": "rhythm-vault",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"scripts": {
+		"dev": "cd apps/web && bun run dev",
+		"build": "bun run --cwd apps/web build",
+		"check": "bun run --cwd apps/web check && bun run check:packages",
+		"check:packages": "bunx tsc -p packages/core/tsconfig.json && bunx tsc -p packages/adapters/tsconfig.json && bunx tsc -p packages/db/tsconfig.json && bunx tsc -p packages/sync/tsconfig.json",
+		"lint": "biome check --diagnostic-level=error",
+		"test": "bun test packages apps/web/src/lib apps/web/src/routes",
+		"start": "cd apps/web && NODE_ENV=production node build",
+		"worker": "cd apps/worker && bun --env-file=../../.env run start",
+		"sync:songs": "bun run --cwd apps/worker sync:songs",
+		"seed:demo": "cd apps/worker && bun --env-file=../../.env seed-demo.ts",
+		"db:generate": "bun run --cwd packages/db generate",
+		"db:migrate": "cd packages/db && bun --env-file=../../.env run migrate"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.11"
+	}
+}

@@ -1,0 +1,17 @@
+FROM oven/bun:1.2.5
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY apps/web/package.json apps/web/
+COPY apps/worker/package.json apps/worker/
+COPY packages/core/package.json packages/core/
+COPY packages/adapters/package.json packages/adapters/
+COPY packages/db/package.json packages/db/
+COPY packages/sync/package.json packages/sync/
+RUN bun install --frozen-lockfile
+COPY . .
+ENV NODE_ENV=production
+ENV RV_DATA_DIR=/app/packages/data
+RUN mkdir -p /app/packages/data /app/apps/worker/.cache \
+	&& chown -R bun:bun /app/packages/data /app/apps/worker/.cache
+USER bun
+CMD ["bun", "run", "--cwd", "apps/worker", "start"]

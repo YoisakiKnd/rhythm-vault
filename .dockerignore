@@ -1,0 +1,13 @@
+node_modules
+.git
+.cache
+**/.cache
+apps/web/.cache
+apps/worker/.cache
+*.log
+.env
+.env.*
+!.env.example
+!.env.prod.example
+# 曲库 JSON 从上游拉取，禁止打进构建上下文 / 镜像
+packages/data/*.json

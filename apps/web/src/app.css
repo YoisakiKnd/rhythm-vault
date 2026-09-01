@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+@plugin 'daisyui' {
+	themes:
+		dark --default,
+		light;
+}
+
+/* 手机端点击区域与长文本 */
+html {
+	-webkit-tap-highlight-color: transparent;
+}
+
+.rv-panel {
+	border: 1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent);
+	background: var(--color-base-100);
+	border-radius: 1rem;
+}
+
+.rv-page-title {
+	font-size: 1.5rem;
+	line-height: 1.25;
+	font-weight: 650;
+	letter-spacing: -0.02em;
+}
+
+.rv-page-desc {
+	margin-top: 0.375rem;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: color-mix(in oklab, var(--color-base-content) 55%, transparent);
+	max-width: 40rem;
+}
+
+.rv-scroll-x {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+}
+.rv-scroll-x::-webkit-scrollbar {
+	display: none;
+}
+
+/* daisyUI drawer-open 默认 width:auto，菜单再 fit-content + wrap，
+   可点区域会比侧栏宽，滚动时整列宽度还会跟着晃。 */
+@media (min-width: 1024px) {
+	.drawer-side {
+		width: 15rem;
+		max-width: 15rem;
+		overflow-x: hidden;
+	}
+	.drawer-side > .drawer-overlay {
+		display: none;
+	}
+}

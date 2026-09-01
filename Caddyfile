@@ -1,0 +1,5 @@
+# {$RV_DOMAIN} 来自 compose 环境变量，例如 example.com（不要带 https://）
+{$RV_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

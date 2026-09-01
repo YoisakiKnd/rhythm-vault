@@ -1,0 +1,21 @@
+{
+	"name": "@rhythm-vault/db",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"generate": "drizzle-kit generate",
+		"migrate": "drizzle-kit migrate"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.44.7",
+		"postgres": "^3.4.7"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^0.31.8",
+		"@types/node": "^25.1.0"
+	}
+}

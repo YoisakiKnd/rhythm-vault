@@ -1,0 +1,16 @@
+{
+	"name": "@rhythm-vault/worker",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"start": "bun src/index.ts",
+		"sync:songs": "bun src/sync-songs.ts"
+	},
+	"dependencies": {
+		"@rhythm-vault/adapters": "workspace:*",
+		"@rhythm-vault/core": "workspace:*",
+		"@rhythm-vault/db": "workspace:*",
+		"@rhythm-vault/sync": "workspace:*"
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"name": "@rhythm-vault/sync",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"@rhythm-vault/adapters": "workspace:*",
+		"@rhythm-vault/core": "workspace:*",
+		"@rhythm-vault/db": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^25.1.0"
+	}
+}

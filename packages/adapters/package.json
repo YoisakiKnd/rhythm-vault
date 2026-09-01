@@ -1,0 +1,16 @@
+{
+	"name": "@rhythm-vault/adapters",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"@rhythm-vault/core": "workspace:*",
+		"zod": "^4.1.13"
+	},
+	"devDependencies": {
+		"@types/node": "^25.1.0"
+	}
+}
