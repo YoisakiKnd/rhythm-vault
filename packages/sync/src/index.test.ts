@@ -4,10 +4,11 @@ import { unpackDivingFishQueryPlayer } from '@rhythm-vault/adapters';
 
 describe('chuniRows', () => {
 	test('isNew 与 rating 取自曲库/本地引擎', () => {
-		const rows = chuniRows([{ id: 3, level_index: 3, score: 1009000, ra: 1 }]);
+		const rows = chuniRows([{ id: 3, level_index: 3, score: 1009000, ra: 1, ds: 12 }]);
 		expect(rows).toHaveLength(1);
 		expect(rows[0].chartKey).toBe('chunithm:3:3');
 		expect(rows[0].isNew).toBe(libraryIsNew('chunithm', 'chunithm:3'));
+		// ra:1 是上游占位；无曲库时用记录里的 ds 走本地引擎，有曲库时用曲库定数（都不应回落成 1）
 		expect(rows[0].rating).not.toBe(1);
 		expect(rows[0].rating).toBeGreaterThan(0);
 	});
