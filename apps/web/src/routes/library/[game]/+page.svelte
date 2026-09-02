@@ -17,7 +17,13 @@
 		category: string;
 		cover: string;
 		isNew: boolean;
-		charts: Array<{ label: string; value: number; diffKey: string; diffLabel: string }>;
+		charts: Array<{
+			label: string;
+			value: number;
+			diffKey: string;
+			diffLabel: string;
+			floorName?: string;
+		}>;
 	}
 
 	// svelte-ignore state_referenced_locally
@@ -247,7 +253,8 @@
 						{#each row.charts as c, i (`${row.id}:${c.diffKey}:${c.label}:${i}`)}
 							<span class="badge {chartBadgeClass(c.diffKey)} badge-sm font-mono">
 								{#if data.game === 'djmax'}
-									{c.diffKey}{c.label ? ` ${c.label}` : ''}
+									{c.diffKey}
+									{c.floorName ?? c.label.replace(/^SC/, '')}
 								{:else}
 									{c.diffLabel}{#if c.label && c.label !== c.diffLabel} {c.label}{/if}
 								{/if}

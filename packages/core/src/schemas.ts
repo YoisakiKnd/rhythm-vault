@@ -21,6 +21,8 @@ export const ChartSchema = z.object({
 	/** 内部定数或理论值（评分引擎输入） */
 	levelValue: z.number(),
 	isNew: z.boolean().default(false),
+	/** DJMAX：V-ARCHIVE 서열표 난이도 상수，如 "14.2"；低难度常缺 */
+	floorName: z.string().optional(),
 	/** 中二 WORLD'S END 曲绘用落雪 origin_id */
 	originId: z.number().optional()
 });

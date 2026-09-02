@@ -148,7 +148,8 @@ async function topRated(
 			score: scores.score,
 			rating: scores.rating,
 			isNew: scores.isNew,
-			updatedAt: scores.updatedAt
+			updatedAt: scores.updatedAt,
+			badges: scores.badges
 		})
 		.from(scores)
 		.where(
@@ -176,11 +177,16 @@ export async function maimaiB50(userId: number, source: ScoreChannel = 'divingfi
 		topRated(userId, 'maimai_dx', true, 15, srcEq),
 		latestUpdatedIso(userId, 'maimai_dx', source)
 	]);
-	const toEntry = (r: (typeof oldBest)[number]) => ({
-		chartKey: r.chartKey,
-		score: r.score,
-		rating: r.rating
-	});
+	const toEntry = (r: (typeof oldBest)[number]) => {
+		const badges = (r.badges ?? {}) as { fc?: unknown; fs?: unknown };
+		return {
+			chartKey: r.chartKey,
+			score: r.score,
+			rating: r.rating,
+			...(typeof badges.fc === 'string' && badges.fc ? { fc: badges.fc } : {}),
+			...(typeof badges.fs === 'string' && badges.fs ? { fs: badges.fs } : {})
+		};
+	};
 	return {
 		rating: [...oldBest, ...newBest].reduce((s, r) => s + (r.rating ?? 0), 0),
 		oldBest: oldBest.map(toEntry),
@@ -234,6 +240,8 @@ export interface ChuniBestEntryView {
 	cover: string;
 	score: number | null;
 	rating: number;
+	fc?: string;
+	version?: string;
 }
 
 export interface ChuniB30Result {
@@ -257,6 +265,7 @@ export async function chunithmB30(userId: number, source: ScoreChannel = 'diving
 	const meta = chartMetaMap('chunithm');
 	const engineInput: ChuniScore[] = [];
 	const scoreByKey = new Map<string, number | null>();
+	const badgeByKey = new Map<string, { fc?: string }>();
 	for (const r of [...oldRows, ...newRows]) {
 		if (r.score === null) continue;
 		if (isChuniWorldsEndChartKey(r.chartKey)) continue;
@@ -264,18 +273,26 @@ export async function chunithmB30(userId: number, source: ScoreChannel = 'diving
 		if (!m || m.value === 0) continue;
 		engineInput.push({ chartId: r.chartKey, ds: m.value, isNew: m.isNew, score: r.score });
 		scoreByKey.set(r.chartKey, r.score);
+		const badges = (r.badges ?? {}) as { fc?: unknown };
+		if (typeof badges.fc === 'string' && badges.fc) badgeByKey.set(r.chartKey, { fc: badges.fc });
 	}
 	if (engineInput.length === 0) throw new AuthError(404, emptyHint(source));
 	const res = computeChuniRating(engineInput);
-	const decorate = (e: ChuniBestEntry): ChuniBestEntryView => ({
-		chartKey: e.chartId,
-		title: meta.get(e.chartId)?.title ?? e.chartId,
-		label: meta.get(e.chartId)?.label ?? '',
-		value: meta.get(e.chartId)?.value ?? 0,
-		cover: meta.get(e.chartId)?.cover ?? '',
-		score: scoreByKey.get(e.chartId) ?? null,
-		rating: e.rating
-	});
+	const decorate = (e: ChuniBestEntry): ChuniBestEntryView => {
+		const m = meta.get(e.chartId);
+		const fc = badgeByKey.get(e.chartId)?.fc;
+		return {
+			chartKey: e.chartId,
+			title: m?.title ?? e.chartId,
+			label: m?.label ?? '',
+			value: m?.value ?? 0,
+			cover: m?.cover ?? '',
+			score: scoreByKey.get(e.chartId) ?? null,
+			rating: e.rating,
+			...(m?.version ? { version: m.version } : {}),
+			...(fc ? { fc } : {})
+		};
+	};
 	return {
 		rating: res.rating,
 		oldBest: res.oldBest.map(decorate),
@@ -337,8 +354,8 @@ async function maxDjPower(button: number): Promise<number> {
 export interface DjmaxB100Result {
 	button: number;
 	rating: number;
-	basic: Array<{ chartKey: string; score: number | null; rating: number | null }>;
-	new: Array<{ chartKey: string; score: number | null; rating: number | null }>;
+	basic: Array<{ chartKey: string; score: number | null; rating: number | null; maxCombo?: boolean }>;
+	new: Array<{ chartKey: string; score: number | null; rating: number | null; maxCombo?: boolean }>;
 	syncedAt: string | null;
 }
 
@@ -347,18 +364,20 @@ function toDjmaxRec(r: {
 	score: number | null;
 	rating: number | null;
 	isNew: boolean;
+	badges?: unknown;
 }): DjmaxRecord | null {
 	if (r.score === null || r.rating === null) return null;
 	const parts = r.chartKey.split(':');
 	const pattern = parts[3];
 	if (pattern !== 'NM' && pattern !== 'HD' && pattern !== 'MX' && pattern !== 'SC') return null;
+	const badges = (r.badges ?? {}) as { maxCombo?: unknown };
 	return {
 		chartId: r.chartKey,
 		title: parts[2] ?? r.chartKey,
 		pattern,
 		level: 0,
 		score: r.score,
-		maxCombo: false,
+		maxCombo: badges.maxCombo === true,
 		djpower: r.rating,
 		isNew: r.isNew
 	};
@@ -386,7 +405,8 @@ export async function djmaxB100(userId: number, button: number): Promise<DjmaxB1
 	const toEntry = (r: DjmaxRecord) => ({
 		chartKey: r.chartId,
 		score: r.score,
-		rating: r.djpower
+		rating: r.djpower,
+		...(r.maxCombo ? { maxCombo: true } : {})
 	});
 	return {
 		button,

@@ -48,6 +48,7 @@ export interface LibrarySong {
 	artist?: string;
 	genre?: string;
 	dlcCode?: string;
+	version?: string;
 	/** 曲目首次出现版本码（落雪数据源，进度统计用） */
 	versionCode?: number;
 	isNew: boolean;
@@ -59,6 +60,8 @@ export interface LibraryChart {
 	levelLabel: string;
 	levelValue: number;
 	isNew: boolean;
+	/** DJMAX：V-ARCHIVE 층/定数 */
+	floorName?: string;
 	originId?: number;
 }
 
@@ -318,7 +321,13 @@ export interface LibraryRow {
 	category: string;
 	cover: string;
 	isNew: boolean;
-	charts: Array<{ label: string; value: number; diffKey: string; diffLabel: string }>;
+	charts: Array<{
+		label: string;
+		value: number;
+		diffKey: string;
+		diffLabel: string;
+		floorName?: string;
+	}>;
 }
 
 export interface QueryLibraryOpts {
@@ -417,7 +426,8 @@ export function queryLibrary(
 				label: c.levelLabel,
 				value: c.levelValue,
 				diffKey: game === 'djmax' ? (c.difficultyKey.split(' ')[1] ?? c.difficultyKey) : key,
-				diffLabel: game === 'djmax' ? c.difficultyKey : diffLabel(key)
+				diffLabel: game === 'djmax' ? c.difficultyKey : diffLabel(key),
+				...(c.floorName ? { floorName: c.floorName } : {})
 			};
 		});
 		if (game === 'djmax') {
@@ -471,6 +481,8 @@ export interface SongChartView {
 	levelLabel: string;
 	levelValue: number;
 	isNew: boolean;
+	/** DJMAX：V-ARCHIVE 층/定数 */
+	floorName?: string;
 	/** DJMAX 键位 4/5/6/8 */
 	button?: number;
 	pattern?: string;
@@ -533,6 +545,7 @@ export function getSongCatalog(game: GameKey, numericId: string): SongCatalog | 
 			levelLabel: c.levelLabel,
 			levelValue: c.levelValue,
 			isNew: c.isNew,
+			...(c.floorName ? { floorName: c.floorName } : {}),
 			...(game === 'djmax' && Number.isFinite(button) && parts[1]
 				? { button, pattern: parts[1] }
 				: {})
@@ -581,6 +594,10 @@ export interface ChartMeta {
 	isNew: boolean;
 	/** 曲绘地址 */
 	cover: string;
+	/** DJMAX：V-ARCHIVE 층/定数 */
+	floorName?: string;
+	/** 版本名，分享图卡片用 */
+	version?: string;
 }
 
 const metaCache = new Map<GameKey, Map<string, ChartMeta>>();
@@ -595,11 +612,17 @@ export function chartMetaMap(game: GameKey): Map<string, ChartMeta> {
 		const next = new Map<string, ChartMeta>();
 		const lib = getLibrary(game);
 		const titles = new Map(lib.songs.map((s) => [s.id, s]));
+		const versionByCode = new Map((lib.versions ?? []).map((v) => [v.code, v.title]));
 		iterateCharts(lib.charts, (c, idx) => {
 			const numericId = numericSongId(c.songId);
 			const chartKey = scoreChartKey(game, numericId, c, idx);
 			const song = titles.get(c.songId);
 			const key = song ? effectiveDiffKey(game, song, c) : c.difficultyKey;
+			const fromCode =
+				song?.versionCode != null ? versionByCode.get(song.versionCode) : undefined;
+			const fromName =
+				song?.version && !/^\d{4}-\d{2}/.test(song.version) ? song.version : undefined;
+			const version = fromCode ?? fromName;
 			next.set(chartKey, {
 				title: song?.title ?? c.songId,
 				label: isDummyChart(c)
@@ -609,7 +632,9 @@ export function chartMetaMap(game: GameKey): Map<string, ChartMeta> {
 						: c.levelLabel,
 				value: c.levelValue,
 				isNew: c.isNew,
-				cover: coverUrl(game, numericId)
+				cover: coverUrl(game, numericId),
+				...(c.floorName ? { floorName: c.floorName } : {}),
+				...(version ? { version } : {})
 			});
 		});
 		metaCache.set(game, next);

@@ -109,6 +109,7 @@ export interface SongDetailJsonChart {
 	level: string;
 	ds: number;
 	isNew: boolean;
+	floorName?: string;
 	button?: number;
 	pattern?: string;
 	score: number | null;
@@ -154,6 +155,7 @@ export function songDetailJson(detail: SongDetail): SongDetailJson {
 			level: c.levelLabel,
 			ds: c.levelValue,
 			isNew: c.isNew,
+			...(c.floorName ? { floorName: c.floorName } : {}),
 			...(c.button != null && c.pattern ? { button: c.button, pattern: c.pattern } : {}),
 			score: c.mine?.score ?? null,
 			rating: c.mine?.rating ?? null,

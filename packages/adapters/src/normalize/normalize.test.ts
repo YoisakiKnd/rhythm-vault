@@ -100,8 +100,9 @@ describe('normalizeDjmax', () => {
 		expect(lib.songs).toHaveLength(1);
 		expect(lib.charts).toHaveLength(6);
 		const sc4 = lib.charts.find((c) => c.difficultyKey === '4B SC');
-		expect(sc4).toMatchObject({ levelLabel: 'SC5', levelValue: 159 });
+		expect(sc4).toMatchObject({ levelLabel: 'SC5', levelValue: 159, floorName: '5.3' });
 		const nm4 = lib.charts.find((c) => c.difficultyKey === '4B NM');
+		expect(nm4?.floorName).toBeUndefined();
 		expect(nm4?.levelValue).toBeCloseTo(4 * 2 * 2.22 + 2.31, 5); // PP 公式回退
 		expect(SongLibrarySchema.safeParse(lib).success).toBe(true);
 	});

@@ -8,36 +8,35 @@ async function waitForImages(root: HTMLElement): Promise<void> {
 	);
 }
 
+function blobToDownload(blob: Blob, filename: string): void {
+	const a = document.createElement('a');
+	a.href = URL.createObjectURL(blob);
+	a.download = filename;
+	a.click();
+	URL.revokeObjectURL(a.href);
+}
+
 /**
- * html-to-image 吃不下 Tailwind v4 的 oklab / color-mix，离屏节点也经常整图涂黑。
- * 克隆到视口内极低透明度再截，分享图固定 2x、宽边约 960px。
+ * html-to-image 吃不下 Tailwind v4 的 oklab / color-mix。
+ * 直接截已排版节点（用 style.opacity=1 覆盖隐藏层），出 WebP，避免再克隆一遍、也不走 PNG。
  */
-export async function downloadSharePng(el: HTMLElement, filename: string): Promise<void> {
-	const { toPng } = await import('html-to-image');
-	const host = document.createElement('div');
-	host.setAttribute('data-share-capture', '');
-	host.style.cssText =
-		'position:fixed;left:0;top:0;z-index:2147483646;pointer-events:none;opacity:0.01;';
-	const clone = el.cloneNode(true) as HTMLElement;
-	clone.style.position = 'static';
-	clone.style.left = 'auto';
-	clone.style.top = 'auto';
-	clone.style.transform = 'none';
-	host.appendChild(clone);
-	document.body.appendChild(host);
-	try {
-		await waitForImages(clone);
-		const dataUrl = await toPng(clone, {
-			pixelRatio: 2,
-			cacheBust: true,
-			backgroundColor: '#171717',
-			skipFonts: true
-		});
-		const a = document.createElement('a');
-		a.href = dataUrl;
-		a.download = filename;
-		a.click();
-	} finally {
-		host.remove();
-	}
+export async function downloadShareImage(
+	el: HTMLElement,
+	filename: string,
+	opts?: { backgroundColor?: string }
+): Promise<void> {
+	const { toCanvas } = await import('html-to-image');
+	await waitForImages(el);
+	const canvas = await toCanvas(el, {
+		pixelRatio: 1.5,
+		cacheBust: false,
+		skipFonts: true,
+		backgroundColor: opts?.backgroundColor ?? '#171717',
+		style: { opacity: '1', transform: 'none' }
+	});
+	const blob = await new Promise<Blob | null>((resolve) => {
+		canvas.toBlob(resolve, 'image/webp', 0.84);
+	});
+	if (!blob) throw new Error('导出失败');
+	blobToDownload(blob, filename);
 }

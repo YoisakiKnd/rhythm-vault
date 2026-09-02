@@ -80,6 +80,41 @@ html {
 	background: color-mix(in oklab, var(--color-base-content) 8%, transparent);
 }
 
+/* DJMAX B100：로페봇同款 7 列 BASIC | 3 列 NEW；窄容器（对比页）仍上下排 */
+.rv-djmax-b100-wrap {
+	container-type: inline-size;
+}
+.rv-djmax-b100 {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.25rem;
+}
+.rv-djmax-grid-basic,
+.rv-djmax-grid-new {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 8px;
+}
+@container (min-width: 720px) {
+	.rv-djmax-b100 {
+		grid-template-columns: 7fr 3fr;
+		gap: 14px;
+		align-items: start;
+	}
+	.rv-djmax-b100-new {
+		border-left: 1px solid color-mix(in oklab, var(--color-base-content) 14%, transparent);
+		padding-left: 14px;
+	}
+	.rv-djmax-grid-basic {
+		grid-template-columns: repeat(7, minmax(0, 1fr));
+		gap: 6px;
+	}
+	.rv-djmax-grid-new {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 6px;
+	}
+}
+
 /* daisyUI drawer-open 默认 width:auto，菜单再 fit-content + wrap，
    可点区域会比侧栏宽，滚动时整列宽度还会跟着晃。 */
 @media (min-width: 1024px) {

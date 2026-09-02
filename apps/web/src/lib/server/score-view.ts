@@ -24,7 +24,14 @@ export { parseButtonParam, parseGameParam, viewSections } from '../score-types';
 export { parseCatalogSrc } from '../catalog-nav';
 
 export function decorateBest(
-	entries: Array<{ chartKey: string; score: number | null; rating: number | null }>,
+	entries: Array<{
+		chartKey: string;
+		score: number | null;
+		rating: number | null;
+		maxCombo?: boolean;
+		fc?: string;
+		fs?: string;
+	}>,
 	meta: Map<string, ChartMeta>
 ): BestEntry[] {
 	return entries.map((e) => {
@@ -36,7 +43,12 @@ export function decorateBest(
 			value: m?.value ?? 0,
 			cover: m?.cover ?? '',
 			score: e.score,
-			rating: e.rating
+			rating: e.rating,
+			...(m?.floorName ? { floorName: m.floorName } : {}),
+			...(m?.version ? { version: m.version } : {}),
+			...(e.maxCombo ? { maxCombo: true } : {}),
+			...(e.fc ? { fc: e.fc } : {}),
+			...(e.fs ? { fs: e.fs } : {})
 		};
 	});
 }

@@ -46,6 +46,7 @@ export interface ChartSheetRow {
 	dlcCode: string | null;
 	dlcName: string | null;
 	isNew: boolean;
+	floorName?: string;
 	mine: SheetMine | null;
 	isFc: boolean;
 	isPp: boolean;
@@ -210,6 +211,7 @@ export async function queryChartSheet(
 			dlcCode: song.dlcCode ?? null,
 			dlcName: song.dlcCode ? (dlcName.get(song.dlcCode) ?? song.dlcCode) : null,
 			isNew: game === 'djmax' ? chart.isNew : song.isNew,
+			...(chart.floorName ? { floorName: chart.floorName } : {}),
 			mine,
 			isFc: isFcBadges(kind, badges),
 			isPp: isPpScore(kind, score)

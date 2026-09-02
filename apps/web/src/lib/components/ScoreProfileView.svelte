@@ -2,10 +2,10 @@
 	import RatingChart from '$lib/components/RatingChart.svelte';
 	import ScoreBestTables from '$lib/components/ScoreBestTables.svelte';
 	import ShareCard from '$lib/components/ShareCard.svelte';
-	import { compactRating } from '$lib/best-display';
-	import { downloadSharePng } from '$lib/download-share';
+	import { compactRating, djmaxClassLabel, ratingAccentColor } from '$lib/best-display';
+	import { downloadShareImage } from '$lib/download-share';
 	import { bestHeadline, ratingSum, viewSections, type ScoreView } from '$lib/score-types';
-	import type { Snippet } from 'svelte';
+	import { tick, type Snippet } from 'svelte';
 
 	interface PushEntry {
 		chartId: string;
@@ -22,6 +22,7 @@
 		username,
 		game,
 		gameLabel,
+		srcLabel = '',
 		view,
 		history,
 		error,
@@ -33,6 +34,7 @@
 		username: string;
 		game: string;
 		gameLabel: string;
+		srcLabel?: string;
 		view: ScoreView | null;
 		history: Array<{ t: string; v: number; button?: number }>;
 		error: string | null;
@@ -51,10 +53,19 @@
 	}
 
 	async function saveShare() {
-		if (!cardEl || !view) return;
+		if (!view) return;
 		sharing = true;
+		await tick();
+		await tick();
+		const el = cardEl;
+		if (!el) {
+			sharing = false;
+			return;
+		}
 		try {
-			await downloadSharePng(cardEl, `${username}-${game}-rating.png`);
+			await downloadShareImage(el, `${username}-${game}-rating.webp`, {
+				backgroundColor: view.kind === 'djmax' ? '#171717' : '#f4f1f8'
+			});
 		} finally {
 			sharing = false;
 		}
@@ -73,7 +84,20 @@
 		<div class="flex flex-wrap items-end justify-between gap-3">
 			<div>
 				<p class="text-xs uppercase tracking-widest text-base-content/45">{bestHeadline(view.kind)}</p>
-				<p class="mt-1 font-black tracking-tight text-4xl text-primary">{compactRating(view.kind, view.rating)}</p>
+				<p
+					class="mt-1 font-black tracking-tight text-4xl"
+					style="color: {ratingAccentColor(view.kind, view.rating)}"
+				>
+					{compactRating(view.kind, view.rating)}
+				</p>
+				{#if view.kind === 'djmax'}
+					<p
+						class="mt-1 text-sm font-bold tracking-widest"
+						style="color: {ratingAccentColor(view.kind, view.rating)}"
+					>
+						{djmaxClassLabel(view.rating)}
+					</p>
+				{/if}
 				<p class="mt-1 text-sm text-base-content/55">
 					{view.kind === 'djmax' ? `${gameLabel} ${view.button}B` : gameLabel}
 				</p>
@@ -146,13 +170,16 @@
 
 	<ScoreBestTables {view} />
 
-	<div class="mt-6">
-		<p class="mb-2 text-sm text-base-content/50">分享图（下载约 960px 宽）</p>
-		<div class="overflow-x-auto rounded-xl border border-base-300 bg-neutral/40 p-3">
-			<div bind:this={cardEl} class="inline-block">
+	{#if sharing}
+		<div
+			aria-hidden="true"
+			style="position:fixed;left:0;top:0;z-index:-1;clip-path:inset(50%);pointer-events:none;"
+		>
+			<div bind:this={cardEl}>
 				<ShareCard
 					{username}
-					gameLabel={view.kind === 'djmax' ? `${gameLabel} ${view.button}B` : gameLabel}
+					{gameLabel}
+					channelLabel={view.kind === 'djmax' ? `${view.button}B` : srcLabel}
 					kind={view.kind}
 					rating={view.rating}
 					syncedAt={view.syncedAt}
@@ -160,5 +187,5 @@
 				/>
 			</div>
 		</div>
-	</div>
+	{/if}
 {/if}

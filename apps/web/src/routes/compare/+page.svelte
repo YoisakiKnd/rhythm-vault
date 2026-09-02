@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ScoreBestTables from '$lib/components/ScoreBestTables.svelte';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
+	import { djmaxClassLabel, ratingAccentColor } from '$lib/best-display';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -90,7 +91,17 @@
 				<div class="stat-title">
 					<a class="link" href="/u/{data.aName}?game={data.game}">{data.aName}</a>
 				</div>
-				<div class="stat-value text-primary">{aView?.rating ?? '—'}</div>
+				<div
+					class="stat-value"
+					style={aView ? `color:${ratingAccentColor(aView.kind, aView.rating)}` : ''}
+				>
+					{aView?.rating ?? '—'}
+				</div>
+				{#if aView?.kind === 'djmax'}
+					<div class="stat-desc font-bold tracking-wide" style={`color:${ratingAccentColor(aView.kind, aView.rating)}`}>
+						{djmaxClassLabel(aView.rating)}
+					</div>
+				{/if}
 			</div>
 			<div class="stat">
 				<div class="stat-title">差值（A − B）</div>
@@ -102,7 +113,17 @@
 				<div class="stat-title">
 					<a class="link" href="/u/{data.bName}?game={data.game}">{data.bName}</a>
 				</div>
-				<div class="stat-value text-secondary">{bView?.rating ?? '—'}</div>
+				<div
+					class="stat-value"
+					style={bView ? `color:${ratingAccentColor(bView.kind, bView.rating)}` : ''}
+				>
+					{bView?.rating ?? '—'}
+				</div>
+				{#if bView?.kind === 'djmax'}
+					<div class="stat-desc font-bold tracking-wide" style={`color:${ratingAccentColor(bView.kind, bView.rating)}`}>
+						{djmaxClassLabel(bView.rating)}
+					</div>
+				{/if}
 			</div>
 		</div>
 

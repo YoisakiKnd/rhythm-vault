@@ -133,6 +133,7 @@
 		username={data.username}
 		game={data.game}
 		gameLabel={data.gameLabel}
+		srcLabel={data.srcLabel}
 		{view}
 		{history}
 		error={data.error}

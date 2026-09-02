@@ -14,4 +14,6 @@ export interface Chart {
 	levelValue: number;
 	/** 是否当前版本"新曲"（maimai b15 / chuni b20 归类依据） */
 	isNew: boolean;
+	/** DJMAX：社区서열표定数（V-ARCHIVE floorName） */
+	floorName?: string;
 }

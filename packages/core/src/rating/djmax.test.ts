@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	computeDjmaxB100,
 	diffCoeff,
+	djmaxClassLabel,
 	djmaxTier,
 	djpowerPp,
 	floorTo4,
@@ -60,6 +61,19 @@ describe('公式与段位锚点（与 djmax_bests_generate 一致）', () => {
 		expect(djmaxTier(9970)).toEqual({ tier: 'beatmaestro', level: 1 });
 		expect(djmaxTier(500)).toEqual({ tier: 'trainee', level: 4 });
 		expect(djmaxTier(499)).toEqual({ tier: 'beginner', level: 1 });
+	});
+	test('djmaxClassLabel 与游戏内 I–IV 一致', () => {
+		expect(djmaxClassLabel(6800)).toBe('MIDDLEMAN I');
+		expect(djmaxClassLabel(6600)).toBe('MIDDLEMAN II');
+		expect(djmaxClassLabel(6400)).toBe('MIDDLEMAN III');
+		expect(djmaxClassLabel(6200)).toBe('MIDDLEMAN IV');
+		expect(djmaxClassLabel(8000)).toBe('HIGH CLASS III');
+		expect(djmaxClassLabel(8400)).toBe('HIGH CLASS I');
+		expect(djmaxClassLabel(6000)).toBe('STREET DJ I');
+		expect(djmaxClassLabel(7000)).toBe('PRO DJ IV');
+		expect(djmaxClassLabel(9000)).toBe('TREND SETTER IV');
+		expect(djmaxClassLabel(9980)).toBe('THE LORD OF DJMAX');
+		expect(djmaxClassLabel(100)).toBe('BEGINNER');
 	});
 
 	test('floorTo4', () => {

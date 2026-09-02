@@ -8,6 +8,16 @@ export interface BestEntry {
 	cover: string;
 	score: number | null;
 	rating: number | null;
+	/** DJMAX：V-ARCHIVE 층/定数 */
+	floorName?: string | null;
+	/** DJMAX MAX COMBO */
+	maxCombo?: boolean;
+	/** 舞萌/中二 FC/AP 原值 */
+	fc?: string;
+	/** 舞萌 FS/FSD */
+	fs?: string;
+	/** 版本名 */
+	version?: string;
 }
 
 export type ScoreView =
@@ -56,8 +66,8 @@ export function parseButtonParam(raw: string | null): number {
 export function viewSections(view: ScoreView): BestSection[] {
 	if (view.kind === 'djmax') {
 		return [
-			{ name: 'B70 · 旧曲', short: 'B70', slots: 70, list: view.basic },
-			{ name: 'B30 · 新曲', short: 'B30', slots: 30, list: view.new }
+			{ name: 'BASIC 旧曲 70', short: 'B70', slots: 70, list: view.basic },
+			{ name: 'NEW 新曲 30', short: 'B30', slots: 30, list: view.new }
 		];
 	}
 	if (view.kind === 'chunithm') {

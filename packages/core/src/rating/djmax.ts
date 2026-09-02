@@ -89,3 +89,30 @@ export function djmaxTier(djpower: number): { tier: string; level: number } {
 	}
 	return { tier: 'beginner', level: 1 };
 }
+
+const DJMAX_CLASS_NAME: Record<string, string> = {
+	lord: 'THE LORD OF DJMAX',
+	beatmaestro: 'BEAT MAESTRO',
+	showstopper: 'SHOWSTOPPER',
+	headliner: 'HEADLINER',
+	trendsetter: 'TREND SETTER',
+	professional: 'PROFESSIONAL',
+	highclass: 'HIGH CLASS',
+	prodj: 'PRO DJ',
+	middleman: 'MIDDLEMAN',
+	streetdj: 'STREET DJ',
+	rookie: 'ROOKIE',
+	amateur: 'AMATEUR',
+	trainee: 'TRAINEE',
+	beginner: 'BEGINNER'
+};
+
+const ROMAN = ['I', 'II', 'III', 'IV'] as const;
+
+/** 游戏内 DJ CLASS 文案，如 MIDDLEMAN I / HIGH CLASS III */
+export function djmaxClassLabel(djpower: number): string {
+	const { tier, level } = djmaxTier(djpower);
+	const name = DJMAX_CLASS_NAME[tier] ?? tier.toUpperCase();
+	if (tier === 'lord' || tier === 'beginner') return name;
+	return `${name} ${ROMAN[level - 1] ?? 'I'}`;
+}

@@ -50,6 +50,13 @@
 						></span>
 						<span class="badge {chartBadgeClass(row.diffKey)} badge-sm font-mono">{row.diffLabel}</span>
 						<span class="font-mono text-sm ml-1">{row.levelLabel}</span>
+						{#if row.floorName}
+							<span
+								class="font-mono text-xs ml-1 {Number(row.floorName) >= 15
+									? 'text-red-400'
+									: 'text-base-content/50'}">{row.floorName}</span
+							>
+						{/if}
 					</td>
 					<td class="font-mono whitespace-nowrap {scoreToneClass(kind, row.mine?.score ?? null)}">
 						{row.mine ? compactScore(row.mine.score, kind) : '未游玩'}

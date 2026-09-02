@@ -27,13 +27,18 @@ export function normalizeDjmax(
 			for (const pattern of PATTERNS) {
 				const p = diffs[pattern];
 				if (!p) continue;
+				const floorName =
+					p.floorName != null && String(p.floorName).trim() !== ''
+						? String(p.floorName)
+						: undefined;
 				charts.push({
 					songId,
 					difficultyKey: `${bmode} ${pattern}`,
 					levelLabel: pattern === 'SC' ? `SC${p.level}` : String(p.level),
 					// 理论 DJPower 优先用上游 rating，缺失时按 PP 公式从等级推
 					levelValue: p.rating ?? djpowerPp(diffCoeff(p.level, pattern === 'SC')),
-					isNew: entry.newTab
+					isNew: entry.newTab,
+					...(floorName ? { floorName } : {})
 				});
 			}
 		}

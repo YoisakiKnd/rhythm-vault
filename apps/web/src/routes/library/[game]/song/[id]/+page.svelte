@@ -21,7 +21,7 @@
 	function fmtScore(s: number | null | undefined) {
 		if (s === null || s === undefined) return '—';
 		if (data.game === 'maimai') return `${s.toFixed(4)}%`;
-		if (data.game === 'djmax') return s.toFixed(2);
+		if (data.game === 'djmax') return `${s.toFixed(2)}%`;
 		return String(Math.round(s));
 	}
 
@@ -115,7 +115,13 @@
 							<span class="badge {chartBadgeClass(chart.diffKey)} badge-sm font-mono">
 								{data.game === 'djmax' ? chart.pattern : chart.diffLabel}
 							</span>
-							<span class="font-mono text-sm">{chart.levelLabel}</span>
+							<span class="font-mono text-sm">
+								{chart.levelLabel}{#if chart.floorName}<span
+										class="ml-1 text-xs {Number(chart.floorName) >= 15
+											? 'text-red-400'
+											: 'text-base-content/50'}">{chart.floorName}</span
+									>{/if}
+							</span>
 						</div>
 						<div class="mt-2 text-xs text-base-content/50">{dsHeader} {fmtDs(chart.levelValue)}</div>
 						<div class="mt-1 text-sm font-medium truncate">
@@ -138,6 +144,9 @@
 						<tr>
 							<th>难度</th>
 							<th>等级</th>
+							{#if data.game === 'djmax'}
+								<th>층</th>
+							{/if}
 							<th>{dsHeader}</th>
 							<th>{scoreHeader}</th>
 							<th>{ratingHeader}</th>
@@ -154,6 +163,15 @@
 									{#if chart.isNew}<span class="badge badge-secondary badge-outline badge-sm">NEW</span>{/if}
 								</td>
 								<td class="font-mono">{chart.levelLabel}</td>
+								{#if data.game === 'djmax'}
+									<td
+										class="font-mono {chart.floorName && Number(chart.floorName) >= 15
+											? 'text-red-400'
+											: ''}"
+									>
+										{chart.floorName ?? '—'}
+									</td>
+								{/if}
 								<td class="font-mono">{fmtDs(chart.levelValue)}</td>
 								<td>{data.loggedIn ? fmtScore(chart.mine?.score ?? null) : '—'}</td>
 								<td class="font-bold">{data.loggedIn ? fmtRating(chart.mine?.rating ?? null) : '—'}</td>
