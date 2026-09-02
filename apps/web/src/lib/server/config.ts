@@ -26,7 +26,7 @@ function oauthFromEnv(prefix: string, fallbackRedirect: string): OAuthConfig | n
 	};
 }
 
-/** 站长用户名（逗号分隔），可签发 bot scope Key、手动确认 QQ 归属 */
+/** 站长用户名（逗号分隔），可审批开发者申请、签发 Bot Key、手动确认 QQ 归属 */
 export function adminUsernames(): string[] {
 	return (process.env.RV_ADMIN_USERS ?? '')
 		.split(',')

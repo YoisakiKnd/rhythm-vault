@@ -41,6 +41,45 @@ html {
 	display: none;
 }
 
+.rv-stack {
+	display: flex;
+	height: 0.5rem;
+	overflow: hidden;
+	border-radius: 999px;
+	background: color-mix(in oklab, var(--color-base-content) 12%, transparent);
+}
+.rv-stack > i {
+	display: block;
+	height: 100%;
+	min-width: 0;
+}
+.rv-stack-pp {
+	background: #eab308;
+}
+.rv-stack-fc {
+	background: #22d3ee;
+}
+.rv-stack-played {
+	background: var(--color-primary);
+}
+
+.rv-best-tile {
+	position: relative;
+	aspect-ratio: 1;
+	overflow: hidden;
+	border-radius: 0.35rem;
+	background: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+}
+.rv-best-tile img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.rv-best-tile-empty {
+	background: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+}
+
 /* daisyUI drawer-open 默认 width:auto，菜单再 fit-content + wrap，
    可点区域会比侧栏宽，滚动时整列宽度还会跟着晃。 */
 @media (min-width: 1024px) {

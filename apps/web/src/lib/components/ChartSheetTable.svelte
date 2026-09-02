@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { badgeText } from '$lib/badge-display';
-	import { formatScore, scoreKindOf } from '$lib/format-score';
+	import { compactScore, diffAccent, scoreToneClass } from '$lib/best-display';
+	import { scoreKindOf } from '$lib/format-score';
 	import { chartBadgeClass } from '$lib/library-display';
 	import type { ChartSheetRow } from '$lib/server/completion';
 
@@ -30,7 +31,7 @@
 		</thead>
 		<tbody>
 			{#each rows as row (row.chartKey)}
-				<tr class={!row.mine ? 'opacity-70' : ''}>
+				<tr class={!row.mine ? 'opacity-55' : ''}>
 					<td>
 						<a href="/library/{game}/song/{row.numericId}" class="flex items-center gap-2 min-w-0">
 							<img src={row.cover} alt="" class="w-9 h-9 rounded object-cover shrink-0 bg-base-300" loading="lazy" />
@@ -43,11 +44,15 @@
 						</a>
 					</td>
 					<td class="whitespace-nowrap">
+						<span
+							class="mr-1 inline-block h-3 w-1 rounded-full align-middle"
+							style="background: {diffAccent(row.diffKey)}"
+						></span>
 						<span class="badge {chartBadgeClass(row.diffKey)} badge-sm font-mono">{row.diffLabel}</span>
 						<span class="font-mono text-sm ml-1">{row.levelLabel}</span>
 					</td>
-					<td class="font-mono whitespace-nowrap">
-						{row.mine ? formatScore(row.mine.score, kind) : '—'}
+					<td class="font-mono whitespace-nowrap {scoreToneClass(kind, row.mine?.score ?? null)}">
+						{row.mine ? compactScore(row.mine.score, kind) : '未游玩'}
 					</td>
 					<td class="font-mono whitespace-nowrap">
 						{row.mine?.rating != null

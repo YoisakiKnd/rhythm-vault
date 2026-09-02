@@ -78,7 +78,7 @@
 	<div class="rv-panel px-4 py-4">
 		<p class="text-xs text-base-content/50">有效 Key</p>
 		<p class="mt-1 text-2xl font-semibold tracking-tight">{activeKeys}</p>
-		<a href="/dashboard/keys" class="mt-2 inline-block text-xs text-primary">管理</a>
+		<a href="/dashboard/developer" class="mt-2 inline-block text-xs text-primary">管理</a>
 	</div>
 	<div class="rv-panel px-4 py-4 col-span-2 sm:col-span-1">
 		<p class="text-xs text-base-content/50">最近同步</p>

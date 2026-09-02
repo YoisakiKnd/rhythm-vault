@@ -50,6 +50,13 @@
       "when": 1788057612000,
       "tag": "0006_key_scope_bot_query",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788057613000,
+      "tag": "0007_developer_applications",
+      "breakpoints": true
     }
   ]
 }

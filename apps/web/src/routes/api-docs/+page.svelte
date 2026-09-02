@@ -18,8 +18,8 @@
 		<div class="card-body">
 			<h2 class="card-title">鉴权方式</h2>
 			<p class="text-sm">
-				在 <a href="/dashboard/keys" class="link">控制台 → API Keys</a>
-				生成 Key（格式 <code>rv_…</code>），请求时放入 Authorization 头：
+				在 <a href="/dashboard/developer" class="link">控制台 → 开发者</a>
+				生成个人 Key（格式 <code>rv_…</code>），请求时放入 Authorization 头：
 			</p>
 			<pre class="mockup-code text-xs"><code>Authorization: Bearer rv_xxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
 			<p class="text-xs text-base-content/70">Key 可随时吊销；请勿写入公开仓库。</p>
@@ -121,7 +121,7 @@
 			<p class="text-xs text-base-content/70">
 				所有数据读取本站同步库（「数据源」绑定 + 概览页同步写入），查询走主键/索引，响应带
 				<code>syncedAt</code> 表示数据新鲜度。默认查询 Key 所属账号。
-				<code>?qq=</code> 仅限站长签发的 <strong>bot scope</strong> Key，且目标用户须已验证该 QQ，并在设置里打开「允许 Bot 查询」。
+				<code>?qq=</code> 仅限通过审批的 <strong>Bot Key</strong>，且目标用户须已验证该 QQ，并在设置里打开「允许 Bot 查询」。
 				未验证 / 未开放 / 不存在统一返回 404。普通 Key 用 <code>?qq=</code> 查别人会 403。
 				整曲（<code>?id=</code>）在曲目存在时始终 200，未游玩谱面的 <code>score</code>/<code>rating</code> 为 null；
 				单谱面（<code>?chart=</code>）未游玩仍 404。b50/b30 等汇总接口在账号从未同步时返回 404 并附引导文案。
@@ -145,9 +145,10 @@
 		<div class="card-body">
 			<h2 class="card-title">开发者应用</h2>
 			<p class="text-sm">
-				在 <a href="/dashboard/developer" class="link">开发者平台</a>
-				为你的 QQ Bot 等客户端创建应用并获取 Key。默认只能查 Key 主人自己；
-				跨账号 <code>?qq=</code> 需要站长把该 Key 升为 bot 权限，且被查用户打开「允许 Bot 查询」。
+				在 <a href="/dashboard/developer" class="link">开发者</a>
+				生成个人 Key，默认只能查 Key 主人自己。
+				要给 QQ Bot 用 <code>?qq=</code> 查别人，在同一页提交开发者申请，站长在审批页通过后即可创建 Bot Key。
+				被查用户须打开「允许 Bot 查询」。
 			</p>
 		</div>
 	</section>

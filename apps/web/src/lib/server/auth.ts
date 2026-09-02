@@ -11,6 +11,7 @@ export const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;
 
 export const MAX_API_KEYS_PER_USER = 10;
 export const MAX_APPS_PER_USER = 10;
+export const MAX_BOT_KEYS_PER_USER = 3;
 
 export const KEY_SCOPES = ['self', 'bot'] as const;
 export type ApiKeyScope = (typeof KEY_SCOPES)[number];
@@ -143,8 +144,14 @@ export async function purgeExpiredSessions(): Promise<void> {
 	await getDb().delete(sessions).where(sql`${sessions.expiresAt} < now()`);
 }
 
-export async function createApiKey(userId: number, name: string, appId: number | null = null) {
+export async function createApiKey(
+	userId: number,
+	name: string,
+	appId: number | null = null,
+	scope: ApiKeyScope = 'self'
+) {
 	if (!name.trim() || name.trim().length > 64) throw new AuthError(400, 'Key 名称需 1–64 字符');
+	if (!isApiKeyScope(scope)) throw new AuthError(400, '无效的权限范围');
 	const [{ n }] = await getDb()
 		.select({ n: count() })
 		.from(apiKeys)
@@ -152,10 +159,28 @@ export async function createApiKey(userId: number, name: string, appId: number |
 	if (Number(n) >= MAX_API_KEYS_PER_USER) {
 		throw new AuthError(409, `每账号最多 ${MAX_API_KEYS_PER_USER} 把有效 API Key`);
 	}
+	if (scope === 'bot') {
+		const [{ n: botN }] = await getDb()
+			.select({ n: count() })
+			.from(apiKeys)
+			.where(
+				and(eq(apiKeys.userId, userId), eq(apiKeys.scope, 'bot'), isNull(apiKeys.revokedAt))
+			);
+		if (Number(botN) >= MAX_BOT_KEYS_PER_USER) {
+			throw new AuthError(409, `每账号最多 ${MAX_BOT_KEYS_PER_USER} 把有效 Bot Key`);
+		}
+	}
 	const raw = `rv_${randomToken(24)}`;
 	const [key] = await getDb()
 		.insert(apiKeys)
-		.values({ userId, appId, name: name.trim(), prefix: raw.slice(0, 11), keyHash: sha256Hex(raw) })
+		.values({
+			userId,
+			appId,
+			name: name.trim(),
+			prefix: raw.slice(0, 11),
+			keyHash: sha256Hex(raw),
+			scope
+		})
 		.returning({
 			id: apiKeys.id,
 			name: apiKeys.name,
@@ -192,17 +217,14 @@ export async function revokeApiKey(userId: number, keyId: number): Promise<void>
 	if (res.length === 0) throw new AuthError(404, 'API Key 不存在或已吊销');
 }
 
-export async function setApiKeyScope(
-	userId: number,
-	keyId: number,
-	scope: ApiKeyScope
-): Promise<void> {
+/** 收回开发者权限时，把该用户所有有效 Bot Key 降为仅查自己 */
+export async function downgradeBotKeysForUser(userId: number): Promise<number> {
 	const res = await getDb()
 		.update(apiKeys)
-		.set({ scope })
-		.where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, userId), isNull(apiKeys.revokedAt)))
+		.set({ scope: 'self' })
+		.where(and(eq(apiKeys.userId, userId), eq(apiKeys.scope, 'bot'), isNull(apiKeys.revokedAt)))
 		.returning({ id: apiKeys.id });
-	if (res.length === 0) throw new AuthError(404, 'API Key 不存在或已吊销');
+	return res.length;
 }
 
 export interface ApiIdentity {

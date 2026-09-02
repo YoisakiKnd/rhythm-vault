@@ -2,6 +2,7 @@
 	import ChartSheetTable from '$lib/components/ChartSheetTable.svelte';
 	import DataPageTabs from '$lib/components/DataPageTabs.svelte';
 	import LibraryFilterBar from '$lib/components/LibraryFilterBar.svelte';
+	import ProgressStackBar from '$lib/components/ProgressStackBar.svelte';
 	import { goto } from '$app/navigation';
 	import { libraryFilterParams } from '$lib/library-query';
 	import type { PageProps } from './$types';
@@ -116,14 +117,17 @@
 </div>
 
 <section class="rv-panel mt-4 p-4">
-	<p class="text-sm text-base-content/60">
-		{data.summary.played} / {data.summary.total} 已游玩
-		· {data.game === 'djmax' ? 'MC' : 'FC'} {data.summary.fc}
-		· {data.game === 'djmax' ? 'PP' : '理论'} {data.summary.pp}
-		{#if data.resultFilter !== 'all'}
-			· 当前列表 {data.total} 条
-		{/if}
-	</p>
+	<ProgressStackBar
+		total={data.summary.total}
+		played={data.summary.played}
+		fc={data.summary.fc}
+		pp={data.summary.pp}
+		fcLabel={data.game === 'djmax' ? 'MC' : 'FC'}
+		ppLabel={data.game === 'djmax' ? 'PP' : '理论'}
+	/>
+	{#if data.resultFilter !== 'all'}
+		<p class="mt-2 text-xs text-base-content/45">当前列表 {data.total} 条</p>
+	{/if}
 	<div class="mt-3">
 		{#if data.rows.length === 0}
 			<p class="text-sm text-base-content/45 py-6 text-center">没有符合筛选的谱面。试试放宽等级或难度。</p>

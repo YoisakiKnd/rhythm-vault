@@ -79,6 +79,42 @@ export const apiKeys = pgTable(
 );
 
 /**
+ * 开发者申请：通过后才能签发 bot scope Key（用 ?qq= 查已开放 Bot 查询的他人成绩）。
+ * 每用户同时最多一条 pending、一条 approved（部分唯一索引）。
+ */
+export const developerApplications = pgTable(
+	'developer_applications',
+	{
+		id: serial('id').primaryKey(),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		/** 应用 / Bot 名称 */
+		name: varchar('name', { length: 64 }).notNull(),
+		purpose: text('purpose').notNull(),
+		contact: varchar('contact', { length: 128 }),
+		homepage: varchar('homepage', { length: 256 }),
+		/** pending | approved | rejected | revoked */
+		status: varchar('status', { length: 16 }).notNull().default('pending'),
+		reviewNote: text('review_note'),
+		reviewedBy: varchar('reviewed_by', { length: 32 }),
+		reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('developer_applications_user_idx').on(t.userId),
+		index('developer_applications_status_idx').on(t.status),
+		uniqueIndex('developer_applications_one_pending_idx')
+			.on(t.userId)
+			.where(sql`${t.status} = 'pending'`),
+		uniqueIndex('developer_applications_one_approved_idx')
+			.on(t.userId)
+			.where(sql`${t.status} = 'approved'`)
+	]
+);
+
+/**
  * 归一化成绩存储：每用户 × 每游戏 × 每谱面 × 每渠道一行。
  * 水鱼 / 落雪分开存，查分按渠道切换；排行榜快照再按谱面择优合并。
  */

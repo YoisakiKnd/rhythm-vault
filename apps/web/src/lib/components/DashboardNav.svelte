@@ -1,18 +1,22 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-	const items = [
+	let { isAdmin = false }: { isAdmin?: boolean } = $props();
+
+	const items = $derived([
 		{ href: '/dashboard', label: '概览' },
 		{ href: '/dashboard/links', label: '数据源' },
 		{ href: '/dashboard/identities', label: '查询账号' },
-		{ href: '/dashboard/keys', label: 'API Keys' },
 		{ href: '/dashboard/developer', label: '开发者' },
+		...(isAdmin ? [{ href: '/dashboard/developer/review', label: '审批' }] : []),
 		{ href: '/dashboard/settings', label: '设置' }
-	];
+	]);
 
 	function active(href: string) {
 		const path = page.url.pathname;
-		return href === '/dashboard' ? path === href : path.startsWith(href);
+		if (href === '/dashboard') return path === href;
+		if (href === '/dashboard/developer') return path === href;
+		return path === href || path.startsWith(`${href}/`);
 	}
 </script>
 

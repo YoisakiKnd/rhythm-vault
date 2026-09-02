@@ -127,6 +127,25 @@ describe('隐私与查分 API', () => {
 		expect(identitiesSrc).not.toContain('setProfilePublic');
 		expect(identitiesSrc).not.toContain('destroyAllSessions');
 	});
+	test('个人 Key 与开发者申请并入同一页，Bot Key 需审批', () => {
+		const keysSrc = readRoute('./dashboard/keys/+page.server.ts');
+		const layoutSrc = readRoute('./dashboard/+layout.server.ts');
+		const devSrc = readRoute('./dashboard/developer/+page.server.ts');
+		const reviewSrc = readRoute('./dashboard/developer/review/+page.server.ts');
+		expect(keysSrc).toContain("redirect(301, '/dashboard/developer')");
+		expect(layoutSrc).toContain('/dashboard/keys');
+		expect(devSrc).toContain('createApiKey(user.id, name)');
+		expect(devSrc).toContain('createBotApiKey');
+		expect(devSrc).toContain('submitApplication');
+		expect(devSrc).not.toContain('setApiKeyScope');
+		expect(reviewSrc).toContain('isAdminUsername');
+		expect(reviewSrc).toContain('approveApplication');
+		expect(reviewSrc).toContain('rejectApplication');
+		expect(reviewSrc).toContain('revokeDeveloperAccess');
+		expect(authSrc).toContain('MAX_BOT_KEYS_PER_USER');
+		expect(authSrc).toContain('downgradeBotKeysForUser');
+		expect(authSrc).toContain("eq(apiKeys.scope, 'bot')");
+	});
 	test('?qq= 走 resolveQueryTarget(identity) 且有 QQ 验证接口', () => {
 		expect(maimaiSongSrc).toContain('resolveQueryTarget(identity, url)');
 		expect(authSrc).toContain('scope: apiKeys.scope');

@@ -1,0 +1,12 @@
+# Cloudflare Tunnel：不启 Caddy，web 只绑回环。
+#   docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml --env-file .env up -d
+#
+# Tunnel 源站填 http://127.0.0.1:3000
+
+services:
+  caddy:
+    profiles: [caddy]
+
+  web:
+    ports:
+      - '127.0.0.1:3000:3000'

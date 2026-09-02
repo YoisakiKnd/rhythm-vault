@@ -177,7 +177,7 @@ WantedBy=multi-user.target
 | `POSTGRES_PASSWORD` | 生产必填，不再默认 `rv` |
 | `RV_DOMAIN` | Caddy 证书用的主机名（无 `https://`） |
 | `GHCR_OWNER` | `ghcr.io/<owner>/rhythm-vault-web` 的 owner |
-| `RV_ADMIN_USERS` | 可签发 bot scope Key、手动确认 QQ 的用户名 |
+| `RV_ADMIN_USERS` | 可审批开发者申请、手动确认 QQ 的用户名 |
 | `RV_ALLOW_UNVERIFIED_QQ` | 仅开发。生产禁止 |
 | `ADDRESS_HEADER` / `XFF_DEPTH` | 反代真实 IP；不要自己读 XFF 首段 |
 | `RV_COVER_DIR` | 曲绘缓存目录，容器内须对运行用户可写 |
@@ -205,6 +205,6 @@ WantedBy=multi-user.target
 - 登录 / 注册跑一遍，Turnstile 出现且校验通过；连续失败 5 次触发限流后，换网络能正常登录
 - 水鱼 / 落雪 OAuth 绑定往返成功
 - `/scores`、`/progress`、`/sheet/maimai` 三个页面出数
-- Bot Key：`self` scope 带 `?qq=` 被拒；`bot` scope 查未开「允许 Bot 查询」的用户被拒
-- `/dashboard/scores` 与 `/dashboard/progress` 返回 301
+- Bot Key：普通 Key 带 `?qq=` 被拒；审批通过的 Bot Key 查未开「允许 Bot 查询」的用户被拒
+- `/dashboard/scores` 与 `/dashboard/progress` 返回 301；`/dashboard/keys` 301 到 `/dashboard/developer`
 - `docker compose logs sync-songs` 里三个 JSON 都写成功
