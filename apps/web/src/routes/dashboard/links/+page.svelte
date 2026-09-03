@@ -21,7 +21,7 @@
 		{
 			id: 'varchive',
 			label: 'V-ARCHIVE',
-			desc: 'DJMAX RESPECT V。绑定你的 V-ARCHIVE 用户 ID。',
+			desc: 'DJMAX RESPECT V。绑定你的 V-ARCHIVE 用户 ID；没有账号可到「DJMAX 录入」手动登记。',
 			placeholder: 'V-ARCHIVE ID'
 		}
 	] as const;
@@ -98,7 +98,7 @@
 			<div class="mt-4 flex flex-wrap items-center gap-2">
 				<form method="POST" action="?/bind" use:enhance class="flex min-w-0 flex-1 flex-wrap gap-2">
 					<input type="hidden" name="source" value={src.id} />
-					<input class="input input-sm flex-1 min-w-40" name="externalId" placeholder={src.placeholder} required />
+					<input class="input input-sm flex-1 min-w-40" name="externalId" placeholder={src.placeholder} aria-label={src.placeholder} required />
 					<button class="btn btn-primary btn-sm">保存</button>
 				</form>
 				{#if src.id !== 'varchive'}

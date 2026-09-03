@@ -128,7 +128,7 @@ export const scores = pgTable(
 		game: varchar('game', { length: 16 }).notNull(),
 		/** maimaidx:1145:3 · chunithm:3:4 · djmax:4B:42:SC */
 		chartKey: varchar('chart_key', { length: 48 }).notNull(),
-		/** divingfish | lxns | varchive */
+		/** divingfish | lxns | varchive | manual */
 		source: varchar('source', { length: 16 }).notNull(),
 		/** 各游戏原分：maimai 达成率 / chuni 分数 / djmax V 值 */
 		score: doublePrecision('score'),
@@ -177,7 +177,7 @@ export const linkedAccounts = pgTable(
 		userId: integer('user_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
-		/** divingfish | lxns | varchive */
+		/** divingfish | lxns | varchive | manual */
 		source: varchar('source', { length: 16 }).notNull(),
 		externalId: text('external_id'),
 		accessTokenEnc: text('access_token_enc'),

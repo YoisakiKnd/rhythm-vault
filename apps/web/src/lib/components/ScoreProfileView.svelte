@@ -16,7 +16,8 @@
 		numericId: string;
 		ds: number;
 		isNew: boolean;
-		achievement: number | null;
+		achievement?: number | null;
+		score?: number | null;
 		currentRating: number | null;
 		target: number;
 		targetRating: number;
@@ -47,8 +48,14 @@
 		history: Array<{ t: string; v: number; button?: number }>;
 		error: string | null;
 		push?: {
-			b50Min: number;
-			comfort: { dsLo: number; dsHi: number; typicalAch: number } | null;
+			b50Min?: number;
+			bestMin?: number;
+			comfort: {
+				dsLo: number;
+				dsHi: number;
+				typicalAch?: number;
+				typicalScore?: number;
+			} | null;
 			improve: PushEntry[];
 			unplayed: PushEntry[];
 		} | null;
@@ -73,12 +80,16 @@
 		const el = cardEl;
 		if (!el) {
 			sharing = false;
+			alert('分享图节点未就绪，请重试。');
 			return;
 		}
 		try {
 			await downloadShareImage(el, `${username}-${game}-rating.webp`, {
 				backgroundColor: view.kind === 'djmax' ? '#171717' : '#f4f1f8'
 			});
+		} catch (err) {
+			const msg = err instanceof Error && err.message ? err.message : '导出失败';
+			alert(`下载分享图失败：${msg}`);
 		} finally {
 			sharing = false;
 		}
@@ -148,12 +159,24 @@
 
 	<ScoreBestTables {view} />
 
-	{#if game === 'maimai' && push}
+	{#if (game === 'maimai' || game === 'chunithm') && push}
+		{@const floor = push.bestMin ?? push.b50Min ?? 0}
+		{@const entries = {
+			improve: push.improve.map((e) => ({
+				...e,
+				achievement: e.achievement ?? e.score ?? null
+			})),
+			unplayed: push.unplayed.map((e) => ({
+				...e,
+				achievement: e.achievement ?? e.score ?? null
+			}))
+		}}
 		<PushSuggestPanel
-			b50Min={push.b50Min}
+			game={game === 'chunithm' ? 'chunithm' : 'maimai'}
+			bestMin={floor}
 			comfort={push.comfort}
-			improve={push.improve}
-			unplayed={push.unplayed}
+			improve={entries.improve}
+			unplayed={entries.unplayed}
 		/>
 	{/if}
 

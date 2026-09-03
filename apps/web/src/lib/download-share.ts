@@ -27,16 +27,22 @@ export async function downloadShareImage(
 ): Promise<void> {
 	const { toCanvas } = await import('html-to-image');
 	await waitForImages(el);
-	const canvas = await toCanvas(el, {
-		pixelRatio: 1.5,
-		cacheBust: false,
-		skipFonts: true,
-		backgroundColor: opts?.backgroundColor ?? '#171717',
-		style: { opacity: '1', transform: 'none' }
-	});
+	let canvas: HTMLCanvasElement;
+	try {
+		canvas = await toCanvas(el, {
+			pixelRatio: 1.5,
+			cacheBust: false,
+			skipFonts: true,
+			backgroundColor: opts?.backgroundColor ?? '#171717',
+			style: { opacity: '1', transform: 'none' }
+		});
+	} catch (err) {
+		const msg = err instanceof Error && err.message ? err.message : '截图失败';
+		throw new Error(msg);
+	}
 	const blob = await new Promise<Blob | null>((resolve) => {
 		canvas.toBlob(resolve, 'image/webp', 0.84);
 	});
-	if (!blob) throw new Error('导出失败');
+	if (!blob) throw new Error('导出失败：浏览器无法生成图片');
 	blobToDownload(blob, filename);
 }

@@ -65,6 +65,12 @@
 					{submitting ? '注册中…' : '注册并登录'}
 				</button>
 			</form>
+			<p class="text-xs text-base-content/60">
+				注册即表示你同意
+				<a href="/terms" class="link">用户协议</a>
+				与
+				<a href="/privacy" class="link">隐私政策</a>。
+			</p>
 			<p class="text-sm text-base-content/70">
 				已有账号？<a href="/login" class="link">登录</a>
 			</p>

@@ -205,7 +205,7 @@ rhythm-vault/
 | `GET /api/v1/me` | 账号信息与可用端点 |
 | `GET /api/v1/maimai/b50` | b50，rating 由本站引擎本地重算（maimaiRatingOf）|
 | `GET /api/v1/maimai/song?chart=1145:3` | 单曲成绩（主键直查）|
-| `GET /api/v1/chunithm/b30` | b30+新曲b20（Phase 2 接入本地引擎后重算）|
+| `GET /api/v1/chunithm/b30` | b30+新曲b20（本地 `chuniRatingOf` 重算）|
 | `GET /api/v1/chunithm/song?chart=3:4` | 中二节奏单曲成绩 |
 | `GET /api/v1/djmax/b100?button=4\|5\|6\|8` | b100 + 归一化总 DJPower |
 | `GET /api/v1/djmax/song?song=42&pattern=SC&button=4` | DJMAX 单曲成绩 |
@@ -234,8 +234,11 @@ rhythm-vault/
 
 ## 9. 分阶段路线图
 
-- **Phase 0 — 地基（先做这个）**：monorepo 骨架、核心 schema、`packages/core` 的 maimai rating 引擎 + 单测、曲库 JSON 流水线（水鱼/落雪 `music_data` → 归一化 JSON → CI 校验 → 入库）。产出：可浏览的国服曲库 + 定数表静态站。
-- **Phase 1 — 第一个查分闭环（✅ 2026-08 已完成）**：曲库同步（水鱼/落雪 music_data + V-ARCHIVE songs.json → packages/data，maimai 1379 曲/chuni 1557 曲/DJMAX 817 曲）；maimai rating 引擎 + DJMAX b100 引擎（含单测）；账号/API Key/会话；水鱼/落雪 OAuth 绑定（PKCE + 令牌轮换）；/api/v1 查分接口与控制台。剩余：chuni 本地评分引擎（当前透传）、rating 历史曲线页。
-- **Phase 2 — 补齐三游（✅ 2026-08 已完成）**：chuni 本地评分引擎（`chuniRatingOf`：定数+加成制，公式查证自水鱼计算器；总评 = b30+b20 共 50 谱面均值；国服新曲判定 = 落雪公共曲库 version 字段，水鱼曲库中出现的最高版本即国服当前版本）→ b30 接口已本地重算。DJMAX 手动录入待做。
-- **Phase 3 — 查分周边（✅ 基本完成）**：✅ 站内查分页（三游 + rating 历史曲线 + 曲绘）、✅ 曲库浏览/定数表 + 曲目详情页（谱面定数 + 登录用户本人成绩 + 曲绘；曲绘直链水鱼/落雪 assets/V-ARCHIVE S3）、✅ maimai 推分建议（API + 页面）、✅ 完成度进度（maimai 按版本/等级、djmax 按曲包、chuni 按等级；API + 页面；maimai 版本数据用落雪按标题联接，两家 ID 体系不同）、✅ 工具箱（三游计算器客户端直用 core 引擎、随机选曲公开 API）、✅ API 限流 + 用量计数、✅ 统一错误页。待做：成绩分享图、玩家对比、rating 排行榜。QQ Bot 插件由使用者自行开发，通过开放 API 接入。
-- **Phase 4 — 交付与社区化（✅ 2026-08 完成主体）**：✅ 统一 SiteNav/SiteFooter（全部页面导航一致、登录态联动）、✅ 首页重做（曲库统计/功能入口/登录态 CTA）、✅ rating 排行榜（`/ranking`，仅显示已登记「查询账号」的用户，自声明公开）、✅ Dockerfile + 部署文档（docs/deploy.md，RV_DATA_DIR 支持容器化曲库）。待做：成绩分享图、玩家对比。QQ Bot 插件由使用者自行开发，通过开放 API 接入。
+- **Phase 0 — 地基（✅ 已完成）**：monorepo 骨架、核心 schema、`packages/core` 的 maimai rating 引擎 + 单测、曲库 JSON 流水线（水鱼/落雪 `music_data` → 归一化 JSON → CI 校验 → 入库）。产出：可浏览的国服曲库 + 定数表静态站。
+- **Phase 1 — 第一个查分闭环（✅ 2026-08 已完成）**：曲库同步（水鱼/落雪 music_data + V-ARCHIVE songs.json → packages/data，maimai 1379 曲/chuni 1557 曲/DJMAX 817 曲）；maimai rating 引擎 + DJMAX b100 引擎（含单测）；账号/API Key/会话；水鱼/落雪 OAuth 绑定（PKCE + 令牌轮换）；/api/v1 查分接口与控制台。原「剩余」项（chuni 本地引擎、rating 历史曲线）已在 Phase 2/3 完成，此处不再列为待做。
+- **Phase 2 — 补齐三游（✅ 2026-08 已完成；手动录入 ✅ 续作）**：✅ chuni 本地评分引擎（`chuniRatingOf`：定数+加成制，公式查证自水鱼计算器；总评 = b30+b20 共 50 谱面均值；国服新曲判定 = 落雪公共曲库 version 字段，水鱼曲库中出现的最高版本即国服当前版本）→ b30 接口已本地重算。✅ DJMAX 手动录入（控制台 `/dashboard/djmax`：逐条 song/button/chart/score → `scores` source=`manual` → 立刻 `snapshotDjmaxRating`；无 V-ARCHIVE 绑定也可出 b100；批量 JSON 导入仍待做）。
+- **Phase 3 — 查分周边（✅ 完成）**：
+  - **已做**：✅ 站内查分页（三游 + rating 历史曲线 + 曲绘）、✅ 曲库浏览/定数表 + 曲目详情页、✅ maimai 推分建议、✅ **chunithm 推分建议**（`chunithm-push` + `/api/v1/chunithm/push` + 查分页 `PushSuggestPanel`）、✅ 完成度进度（maimai / djmax / chuni）、✅ 工具箱（计算器 + 随机选曲）、✅ API 限流 + 用量计数、✅ 统一错误页、✅ **成绩分享图**（查分页 `ShareCard` 下载）、✅ **玩家对比**（`/compare`）、✅ **rating 排行榜**（`/ranking`，档案公开用户）。
+  - **明确不做（QQ 验证）**：不接腾讯官方 QQ OAuth，也不把「站内独立完成 QQ 归属核验」列为交付；Bot 验证码链路由使用者自建 Bot 接入开放 API，非本站必做范围。
+  - **下一步**：DJMAX 批量 JSON 导入；推分/录入体验打磨；规模上来后再接 BullMQ。
+- **Phase 4 — 交付与社区化（✅ 完成主体）**：✅ 统一 SiteNav/SiteFooter、✅ 首页、✅ `/ranking`、✅ Dockerfile + `docs/deploy.md`。分享图与玩家对比已在 Phase 3 落地，不再列为待做。

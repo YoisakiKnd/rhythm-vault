@@ -4,7 +4,9 @@ import {
 	diffCoeff,
 	djmaxClassLabel,
 	djmaxTier,
+	djpowerOf,
 	djpowerPp,
+	scoreToDjpowerWeight,
 	floorTo4,
 	type DjmaxRecord
 } from './djmax';
@@ -79,5 +81,19 @@ describe('公式与段位锚点（与 djmax_bests_generate 一致）', () => {
 	test('floorTo4', () => {
 		expect(floorTo4(123.45678)).toBe(123.4567);
 		expect(floorTo4(0.00001)).toBe(0);
+	});
+});
+
+describe('djpowerOf / scoreToDjpowerWeight', () => {
+	test('低于 90 为 0，PP 为满值', () => {
+		expect(djpowerOf(89.99, 60)).toBe(0);
+		expect(djpowerOf(100, 60.03)).toBe(60.03);
+	});
+
+	test('社区锚点权重', () => {
+		expect(scoreToDjpowerWeight(96)).toBeCloseTo(0.4, 5);
+		expect(scoreToDjpowerWeight(98)).toBeCloseTo(0.83, 5);
+		expect(scoreToDjpowerWeight(99)).toBeCloseTo(0.935, 5);
+		expect(djpowerOf(98, 60.03)).toBeCloseTo(floorTo4(60.03 * 0.83), 5);
 	});
 });

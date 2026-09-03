@@ -106,6 +106,8 @@ describe('隐私与查分 API', () => {
 		expect(rankingSrc).toContain('profilePublic');
 		expect(rankingSrc).toContain('username: r.username');
 		expect(rankingSrc).not.toContain('userId: r.userId');
+		expect(rankingSrc).toContain("->>'button'");
+		expect(rankingSrc).toContain('parseButtonParam');
 	});
 	test('v1 单曲 id 与 chart 互斥，id 须为数字', () => {
 		for (const src of [maimaiSongSrc, chuniSongSrc]) {
@@ -164,5 +166,26 @@ describe('隐私与查分 API', () => {
 		const verifySrc = readRoute('./api/v1/identities/verify/+server.ts');
 		expect(verifySrc).toContain("identity.scope !== 'bot'");
 		expect(verifySrc).toContain('verifyIdentityByCode');
+	});
+});
+
+describe('隐私政策与用户协议页面', () => {
+	test('路由与页脚、注册页互相链接', () => {
+		const privacy = readRoute('./privacy/+page.svelte');
+		const terms = readRoute('./terms/+page.svelte');
+		const footer = readFileSync(new URL('../lib/components/SiteFooter.svelte', import.meta.url), 'utf8');
+		const register = readRoute('./register/+page.svelte');
+		const tools = readRoute('./tools/+page.svelte');
+		expect(privacy).toContain('隐私政策');
+		expect(privacy).toContain('rv_');
+		expect(privacy).toContain('github.com/YoisakiKnd/rhythm-vault/issues');
+		expect(terms).toContain('用户协议');
+		expect(terms).toContain('OAuth');
+		expect(footer).toContain('href="/privacy"');
+		expect(footer).toContain('href="/terms"');
+		expect(register).toContain('href="/terms"');
+		expect(register).toContain('href="/privacy"');
+		expect(tools).toContain('/tools/chunithm-rating');
+		expect(tools).toContain('中二推分');
 	});
 });
