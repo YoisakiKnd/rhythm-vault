@@ -11,8 +11,9 @@
 	let pattern = $state('MX');
 	let score = $state('98.00');
 	let patterns = $state<Array<{ pattern: string; levelLabel: string; levelValue: number }>>([]);
-	let q = $state(data.q);
-	let button = $state(data.button);
+	// 不在初始化时读 data，避免 state_referenced_locally；由 effect 同步 URL/服务端值
+	let q = $state('');
+	let button = $state(4);
 
 	$effect(() => {
 		q = data.q;

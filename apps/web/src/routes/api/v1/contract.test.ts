@@ -160,6 +160,7 @@ describe('v1 成功响应形状（本地可构造）', () => {
 		const detail = {
 			game: 'maimai' as const,
 			id: '1145',
+			songId: 'maimaidx:1145',
 			title: 'Demo',
 			artist: 'A',
 			genre: 'G',
@@ -169,7 +170,7 @@ describe('v1 成功响应形状（本地可构造）', () => {
 			dlcName: null,
 			isNew: false,
 			cover: '/cover/maimai/1145',
-			chartType: 'std' as const,
+			chartType: 'standard' as const,
 			charts: [
 				{
 					chartKey: 'maimaidx:1145:3',
