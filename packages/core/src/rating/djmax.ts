@@ -63,6 +63,40 @@ export function djpowerPp(coeff: number): number {
 	return coeff * 2.22 + 2.31;
 }
 
+/**
+ * 按达成率折算单曲 DJPower。maxPp 为 PP 理论值（曲库 levelValue / djpowerPp）。
+ * 官方公式未公开；权重按社区公开锚点分段线性插值
+ * （约 96%→40%、97%→60%、98%→83%、99%→93.5%），手动录入用此近似。
+ */
+const SCORE_WEIGHT_ANCHORS: ReadonlyArray<readonly [number, number]> = [
+	[90, 0],
+	[96, 0.4],
+	[97, 0.6],
+	[98, 0.83],
+	[99, 0.935],
+	[100, 1]
+];
+
+export function scoreToDjpowerWeight(score: number): number {
+	if (score < 90) return 0;
+	if (score >= 100) return 1;
+	for (let i = 1; i < SCORE_WEIGHT_ANCHORS.length; i++) {
+		const [x0, y0] = SCORE_WEIGHT_ANCHORS[i - 1];
+		const [x1, y1] = SCORE_WEIGHT_ANCHORS[i];
+		if (score <= x1) {
+			const t = (score - x0) / (x1 - x0);
+			return y0 + t * (y1 - y0);
+		}
+	}
+	return 1;
+}
+
+export function djpowerOf(score: number, maxPp: number): number {
+	if (maxPp <= 0 || score < MIN_SCORE) return 0;
+	if (score >= 100) return maxPp;
+	return floorTo4(maxPp * scoreToDjpowerWeight(score));
+}
+
 /** DJPower 段位（beginner → THE LORD OF DJMAX），阈值与水鱼 djmax_bests_generate 一致 */
 const DJPOWER_TIER_MAP: Array<readonly [string, readonly number[]]> = [
 	['beatmaestro', [9970, 9950, 9930, 9900]],

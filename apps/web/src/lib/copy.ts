@@ -32,6 +32,9 @@ export function catalogSrcName(src: CatalogSrc): string {
 
 export function scoresEmptyUnbound(src: CatalogSrc | 'varchive'): string {
 	const name = src === 'varchive' ? 'V-ARCHIVE' : catalogSrcName(src);
+	if (src === 'varchive') {
+		return '还没有 DJMAX 成绩。可以绑定 V-ARCHIVE 同步，或到控制台「DJMAX 录入」手动登记。';
+	}
 	return `还没有绑定${name}。绑定并同步后才会出现这份成绩。`;
 }
 
@@ -51,6 +54,7 @@ export function scoresEmptyMessage(opts: {
 
 export function emptyScoresCta(message: string | null | undefined): { href: string; label: string } | null {
 	if (!message || message === VISITOR_NO_SCORES || message === LOAD_FAILED) return null;
+	if (message.includes('DJMAX 录入')) return { href: '/dashboard/djmax', label: '去录入' };
 	if (message.startsWith('还没有绑定')) return { href: '/dashboard/links', label: '去绑定' };
 	return { href: '/dashboard', label: '去同步' };
 }
@@ -86,3 +90,29 @@ export function friendlySyncError(err: unknown): string {
 	}
 	return assertSafeSyncMessage(out);
 }
+
+
+export const PUSH_EMPTY = '这个水平附近暂时没有更顺手的目标。把已有谱再往上磨一磨，或者同步一次后再看。';
+
+export function PUSH_FLOOR_HINT(bestLabel: string): string {
+	return `按你 ${bestLabel} 里已经打稳的定数来推，优先离下一档很近的谱。末位单曲 rating `;
+}
+
+export function PUSH_FOOTNOTE(bestLabel: string): string {
+	return `不是越难越该打。实际 ${bestLabel} 以同步后的组成为准。`;
+}
+
+export function pushEffortText(game: 'maimai' | 'chunithm', effort: number): string {
+	if (game === 'chunithm') {
+		const n = Math.round(effort);
+		if (n < 100) return '不到 100 分';
+		return `${n.toLocaleString('zh-CN')} 分`;
+	}
+	const v = Math.round(effort * 100) / 100;
+	return v < 0.1 ? '不到 0.1%' : `${v.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%`;
+}
+
+export const DJMAX_MANUAL_TITLE = 'DJMAX 手动录入';
+export const DJMAX_MANUAL_DESC =
+	'没有 V-ARCHIVE 绑定时，可以在这里逐条登记成绩。写入后会立刻重算该键位 b100。';
+export const DJMAX_MANUAL_SAVED = '已保存，并已重算 b100。';

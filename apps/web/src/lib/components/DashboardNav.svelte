@@ -4,6 +4,7 @@
 	const items = [
 		{ href: '/dashboard', label: '概览' },
 		{ href: '/dashboard/links', label: '绑定' },
+		{ href: '/dashboard/djmax', label: 'DJMAX 录入' },
 		{ href: '/dashboard/identities', label: '查询账号' },
 		{ href: '/dashboard/developer', label: '开发者' },
 		{ href: '/dashboard/settings', label: '设置' }

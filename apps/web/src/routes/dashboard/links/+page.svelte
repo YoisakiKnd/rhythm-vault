@@ -21,7 +21,7 @@
 		{
 			id: 'varchive',
 			label: 'V-ARCHIVE',
-			desc: 'DJMAX RESPECT V。绑定你的 V-ARCHIVE 用户 ID。',
+			desc: 'DJMAX RESPECT V。绑定你的 V-ARCHIVE 用户 ID；没有账号可到「DJMAX 录入」手动登记。',
 			placeholder: 'V-ARCHIVE ID'
 		}
 	] as const;
