@@ -8,6 +8,11 @@
 			desc: 'maimai 单曲 rating、中二节奏分数换算 rating、DJMAX 理论 PP——本地精确计算，无需登录'
 		},
 		{
+			href: '/tools/chunithm-rating',
+			name: '中二推分 / 计算器说明',
+			desc: '中二单曲加成表、B30+B20 口径，以及如何配合计算器估推分'
+		},
+		{
 			href: '/tools/random',
 			name: '随机选曲',
 			desc: '按游戏、定数区间、是否新曲随机抽歌，选择困难症救星'
