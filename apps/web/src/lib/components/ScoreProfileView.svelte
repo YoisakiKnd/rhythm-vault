@@ -80,12 +80,16 @@
 		const el = cardEl;
 		if (!el) {
 			sharing = false;
+			alert('分享图节点未就绪，请重试。');
 			return;
 		}
 		try {
 			await downloadShareImage(el, `${username}-${game}-rating.webp`, {
 				backgroundColor: view.kind === 'djmax' ? '#171717' : '#f4f1f8'
 			});
+		} catch (err) {
+			const msg = err instanceof Error && err.message ? err.message : '导出失败';
+			alert(`下载分享图失败：${msg}`);
 		} finally {
 			sharing = false;
 		}

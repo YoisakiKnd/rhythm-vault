@@ -106,6 +106,8 @@ describe('隐私与查分 API', () => {
 		expect(rankingSrc).toContain('profilePublic');
 		expect(rankingSrc).toContain('username: r.username');
 		expect(rankingSrc).not.toContain('userId: r.userId');
+		expect(rankingSrc).toContain("->>'button'");
+		expect(rankingSrc).toContain('parseButtonParam');
 	});
 	test('v1 单曲 id 与 chart 互斥，id 须为数字', () => {
 		for (const src of [maimaiSongSrc, chuniSongSrc]) {

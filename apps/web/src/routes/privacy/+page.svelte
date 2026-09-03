@@ -4,9 +4,9 @@
 
 <svelte:head><title>隐私政策 · 葱喵工厂</title></svelte:head>
 
-<main class="mx-auto max-w-3xl px-3 sm:px-4 py-8 sm:py-10 prose prose-sm sm:prose-base max-w-none">
-	<h1 class="text-2xl sm:text-3xl font-bold !mb-2">隐私政策</h1>
-	<p class="text-sm text-base-content/60 !mt-0">适用于「葱喵工厂」（rhythm-vault）音游成绩中枢。更新日期：2026-09-03。</p>
+<main class="mx-auto max-w-3xl px-3 sm:px-4 py-8 sm:py-10">
+	<h1 class="text-2xl sm:text-3xl font-bold">隐私政策</h1>
+	<p class="text-sm text-base-content/60 mt-1">适用于「葱喵工厂」（rhythm-vault）音游成绩中枢。更新日期：2026-09-03。</p>
 
 	<section class="mt-6 space-y-3 text-sm sm:text-base text-base-content/80 leading-relaxed">
 		<p>

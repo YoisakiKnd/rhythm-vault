@@ -172,6 +172,10 @@ export function functionHref(
 		case 'library':
 			return libraryHref(game, { src: opts?.src, diff: opts?.diff });
 		case 'ranking':
+			if (game === 'djmax') {
+				const n = (opts?.diff ?? '4B').replace('B', '');
+				return `/ranking?game=djmax&button=${n}`;
+			}
 			return `/ranking?game=${game}`;
 		case 'scores':
 			if (game === 'djmax') {
@@ -180,7 +184,11 @@ export function functionHref(
 			}
 			return `/scores?game=${game}${opts?.src === 'lxns' ? '&src=lxns' : ''}`;
 		case 'progress':
-			return `/progress?game=${game}${opts?.src === 'lxns' && game !== 'djmax' ? '&src=lxns' : ''}`;
+			if (game === 'djmax') {
+				const n = (opts?.diff ?? '4B').replace('B', '');
+				return `/progress?game=djmax&button=${n}`;
+			}
+			return `/progress?game=${game}${opts?.src === 'lxns' ? '&src=lxns' : ''}`;
 		case 'sheet':
 			if (game === 'djmax') {
 				return `/sheet/djmax?diff=${opts?.diff ?? '4B'}`;
@@ -247,6 +255,9 @@ export function gameSwitchHref(
 		return libraryHref(next, { src });
 	}
 	if (pathname.startsWith('/ranking')) {
+		if (next === 'djmax') {
+			return `/ranking?game=djmax&button=${(remembered?.diff ?? '4B').replace('B', '')}`;
+		}
 		return `/ranking?game=${next}`;
 	}
 	if (pathname.startsWith('/scores')) {
@@ -260,7 +271,9 @@ export function gameSwitchHref(
 	}
 	if (pathname.startsWith('/progress')) {
 		const q = new URLSearchParams({ game: next });
-		if (next !== 'djmax' && (remembered?.src ?? parseCatalogSrc(search.get('src'))) === 'lxns') {
+		if (next === 'djmax') {
+			q.set('button', (remembered?.diff ?? parseDjmaxDiff(search.get('button'))).replace('B', ''));
+		} else if ((remembered?.src ?? parseCatalogSrc(search.get('src'))) === 'lxns') {
 			q.set('src', 'lxns');
 		}
 		return `/progress?${q}`;
@@ -320,11 +333,11 @@ export function variantSwitchHref(
 			const s = q.toString();
 			return s ? `${pathname}?${s}` : pathname;
 		}
-		if (pathname.startsWith('/scores')) {
+		if (pathname.startsWith('/scores') || pathname.startsWith('/progress') || pathname.startsWith('/ranking')) {
 			const q = new URLSearchParams(search);
 			q.set('game', 'djmax');
 			q.set('button', button);
-			return `/scores?${q}`;
+			return `${pathname.startsWith('/ranking') ? '/ranking' : pathname.startsWith('/progress') ? '/progress' : '/scores'}?${q}`;
 		}
 		if (pathname.startsWith('/sheet/')) {
 			const q = new URLSearchParams(search);

@@ -30,7 +30,7 @@
 
 <main class="mx-auto max-w-3xl px-3 sm:px-4 py-8 sm:py-10">
 	<h1 class="text-2xl sm:text-3xl font-bold">工具箱</h1>
-	<p class="mt-2 text-base-content/70 text-sm sm:text-base">音游玩家的常用小工具，全部本地计算。</p>
+	<p class="mt-2 text-base-content/70 text-sm sm:text-base">音游常用小工具；计算器等可在浏览器本地完成，无需登录。</p>
 
 	<div class="grid gap-3 mt-6">
 		{#each tools as tool (tool.href)}
