@@ -27,10 +27,11 @@
 </script>
 
 <header>
-	<h1 class="rv-page-title">开发者审批</h1>
+	<h1 class="rv-page-title">管理后台</h1>
 	<p class="rv-page-desc">
-		通过后对方可创建 Bot Key，用 <code class="text-xs">?qq=</code> 查已开放 Bot 查询的用户。收回权限会把其有效 Bot Key 降为仅查自己。
-		<a class="link" href="/dashboard/developer">返回开发者页</a>
+		审批开发者申请，以及在 Bot 验证不便时手动确认 QQ 归属。通过后对方可在
+		<a class="link" href="/dashboard/developer">开发者页</a>
+		创建 Bot Key。
 	</p>
 </header>
 
@@ -94,7 +95,39 @@
 	{#if others.length === 0}
 		<p class="p-5 text-sm text-base-content/45">还没有已处理记录。</p>
 	{:else}
-		<div class="overflow-x-auto">
+		<div class="overflow-x-auto md:hidden">
+			<ul class="divide-y divide-base-300">
+				{#each others as app (app.id)}
+					<li class="p-4 space-y-2">
+						<div class="flex flex-wrap items-start justify-between gap-2">
+							<div class="min-w-0">
+								<p class="font-medium">{app.name}</p>
+								<p class="text-xs text-base-content/45 truncate">{app.purpose}</p>
+							</div>
+							<span class="badge badge-sm badge-outline {badgeClass(app.status)}">
+								{STATUS_LABEL[app.status]}
+							</span>
+						</div>
+						<p class="text-xs text-base-content/60">
+							申请人 <code>{app.username}</code>
+							· {app.reviewedBy ?? '—'}
+							· {fmt(app.reviewedAt)}
+						</p>
+						{#if app.reviewNote}
+							<p class="text-xs">{app.reviewNote}</p>
+						{/if}
+						{#if app.status === 'approved'}
+							<form method="POST" action="?/revokeAccess" use:enhance class="flex flex-col gap-1">
+								<input type="hidden" name="id" value={app.id} />
+								<input class="input input-sm" name="note" required placeholder="收回原因" />
+								<button class="btn btn-ghost btn-xs self-start text-error">收回权限</button>
+							</form>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</div>
+		<div class="hidden md:block overflow-x-auto">
 			<table class="table table-sm">
 				<thead>
 					<tr>

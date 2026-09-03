@@ -15,6 +15,7 @@
 		parseDjmaxDiff,
 		srcFromUrl,
 		buttonFromUrl,
+		variantLabel,
 		variantSwitchHref,
 		type CatalogSrc,
 		type DjmaxButton,
@@ -27,7 +28,10 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { PREF_CHANGE, PREF_DJMAX, PREF_GAME, PREF_SRC, writePrefDjmax, writePrefGame, writePrefSrc } from '$lib/prefs';
 
-	let { children, data }: { children: Snippet; data: { user: { username: string } | null } } = $props();
+	let {
+		children,
+		data
+	}: { children: Snippet; data: { user: { username: string } | null; isAdmin: boolean } } = $props();
 
 	const user = $derived(data.user);
 	let drawerOpen = $state(false);
@@ -127,7 +131,8 @@
 		{ fn: 'ranking' as const, label: '排行榜' },
 		{ fn: 'compare' as const, label: '玩家对比' },
 		{ fn: 'calc' as const, label: '计算器' },
-		{ fn: 'random' as const, label: '随机选曲' }
+		{ fn: 'random' as const, label: '随机选曲' },
+		{ fn: 'docs' as const, label: '文档' }
 	];
 
 	const userFns = [
@@ -137,7 +142,11 @@
 		{ fn: 'sync' as const, label: '同步数据' }
 	];
 
-	const showCatalogVariant = $derived(!pathname.startsWith('/ranking'));
+	const showCatalogVariant = $derived(
+		!pathname.startsWith('/ranking') &&
+			!pathname.startsWith('/api-docs') &&
+			!pathname.startsWith('/admin')
+	);
 </script>
 
 {#snippet gameMenu()}
@@ -179,7 +188,7 @@
 			{#if catalogGroup && showCatalogVariant}
 				<div>
 					<p class="text-xs text-base-content/50 px-0.5 mb-1">
-						{catalogGroup.kind === 'button' ? '键位' : '数据源'}
+						{catalogGroup.kind === 'button' ? '键位' : '渠道'}
 					</p>
 					<div class="flex flex-wrap gap-1">
 						{#each catalogGroup.items as item (item.key)}
@@ -240,21 +249,24 @@
 						设置
 					</a>
 				</li>
+				{#if data.isAdmin}
+					<li>
+						<a href="/admin" class={pathname.startsWith('/admin') ? 'active' : ''}>管理后台</a>
+					</li>
+				{/if}
 			{/if}
 		</ul>
 	</div>
 
-	<div class="shrink-0 p-3 border-t border-base-300 space-y-1.5">
+	<div class="shrink-0 p-3 border-t border-base-300 space-y-1.5" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))">
 		{#if user}
 			<a href="/dashboard/settings" class="btn btn-primary btn-sm w-full truncate">{user.username}</a>
 			<ThemeToggle compact />
-			<a href="/api-docs" class="btn btn-ghost btn-sm w-full">API 文档</a>
 			<button type="button" class="btn btn-ghost btn-sm w-full" onclick={logout}>退出</button>
 		{:else}
 			<a href="/login" class="btn btn-primary btn-sm w-full">登录账号</a>
 			<a href="/register" class="btn btn-ghost btn-sm w-full">新用户注册</a>
 			<ThemeToggle compact />
-			<a href="/api-docs" class="btn btn-ghost btn-sm w-full">API 文档</a>
 		{/if}
 	</div>
 {/snippet}
@@ -271,7 +283,17 @@
 					<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
 				</svg>
 			</label>
-			<a href="/" class="font-bold px-1">葱喵工厂</a>
+			<p class="min-w-0 flex-1 truncate px-1 text-sm font-semibold">
+				{#if pathname.startsWith('/admin')}
+					管理后台
+				{:else if pathname.startsWith('/api-docs')}
+					文档
+				{:else}
+					{gameLabel(game)}{#if showCatalogVariant}
+						<span class="font-normal text-base-content/55"> · {variantLabel(game, src, diff)}</span>
+					{/if}
+				{/if}
+			</p>
 		</header>
 		<div class="flex-1 flex flex-col">
 			{@render children()}

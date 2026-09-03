@@ -156,7 +156,28 @@
 				{#if data.overlap.length === 0}
 					<p class="text-sm text-base-content/50">没有重叠谱面。</p>
 				{:else}
-					<div class="overflow-x-auto">
+					<div class="md:hidden space-y-3">
+						{#each data.overlap as row (row.chartKey)}
+							<div class="flex gap-3">
+								{#if row.cover}
+									<img src={row.cover} alt="" class="w-10 h-10 rounded object-cover shrink-0" loading="lazy" />
+								{/if}
+								<div class="min-w-0 flex-1">
+									<p class="truncate font-medium">{row.title}</p>
+									<p class="font-mono text-xs text-base-content/50">{row.label}</p>
+									<p class="mt-1 font-mono text-sm">
+										{fmtScore(row.aScore, data.game)}
+										<span class="mx-1 text-base-content/40">/</span>
+										{fmtScore(row.bScore, data.game)}
+										<span class="ml-2 {row.delta >= 0 ? 'text-success' : 'text-error'}">
+											{row.delta > 0 ? '+' : ''}{fmtScore(row.delta, data.game)}
+										</span>
+									</p>
+								</div>
+							</div>
+						{/each}
+					</div>
+					<div class="hidden overflow-x-auto md:block">
 						<table class="table table-sm">
 							<thead>
 								<tr>

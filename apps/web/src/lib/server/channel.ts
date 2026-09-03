@@ -1,11 +1,12 @@
+import { catalogSrcName, scoresEmptyMessage } from '$lib/copy';
 import { parseCatalogSrc, type CatalogSrc } from '$lib/catalog-nav';
 
 export function catalogSrcLabel(src: CatalogSrc): string {
-	return src === 'lxns' ? '落雪' : '水鱼';
+	return catalogSrcName(src);
 }
 
-export function channelEmptyMessage(src: CatalogSrc): string {
-	return `${catalogSrcLabel(src)}暂无该游戏的成绩数据。可切换到其他渠道，或到控制台绑定并同步。`;
+export function channelEmptyMessage(src: CatalogSrc, bound = true): string {
+	return scoresEmptyMessage({ bound, src });
 }
 
 export function catalogSrcToSource(src: CatalogSrc): 'divingfish' | 'lxns' {

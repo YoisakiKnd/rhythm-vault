@@ -21,12 +21,11 @@
 	const cells = $derived(
 		Array.from({ length: pad ? slots : Math.min(list.length, slots) }, (_, i) => list[i] ?? null)
 	);
-	const colsClass = $derived(
-		dense ? 'grid-cols-7 sm:grid-cols-10' : 'grid-cols-5 sm:grid-cols-7'
-	);
+	const gridClass = $derived(dense ? 'rv-best-grid rv-best-grid-dense' : 'rv-best-grid');
 </script>
 
-<div class="grid gap-1 {colsClass}">
+<div class="rv-best-grid-wrap">
+	<div class={gridClass}>
 	{#each cells as entry, i (entry?.chartKey ?? `empty-${i}`)}
 		<div class="min-w-0">
 			{#if entry}
@@ -62,4 +61,5 @@
 			{/if}
 		</div>
 	{/each}
+	</div>
 </div>

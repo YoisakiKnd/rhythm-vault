@@ -80,7 +80,29 @@ html {
 	background: color-mix(in oklab, var(--color-base-content) 8%, transparent);
 }
 
-/* DJMAX B100：로페봇同款 7 列 BASIC | 3 列 NEW；窄容器（对比页）仍上下排 */
+.rv-best-grid-wrap {
+	container-type: inline-size;
+}
+.rv-best-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 4px;
+}
+@container (min-width: 480px) {
+	.rv-best-grid {
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+	}
+}
+@container (min-width: 720px) {
+	.rv-best-grid {
+		grid-template-columns: repeat(7, minmax(0, 1fr));
+	}
+	.rv-best-grid-dense {
+		grid-template-columns: repeat(10, minmax(0, 1fr));
+	}
+}
+
+/* DJMAX B100：로페봇同款 7 列 BASIC | 3 列 NEW；窄容器仍上下排 */
 .rv-djmax-b100-wrap {
 	container-type: inline-size;
 }
@@ -92,8 +114,14 @@ html {
 .rv-djmax-grid-basic,
 .rv-djmax-grid-new {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 8px;
+}
+@container (min-width: 480px) {
+	.rv-djmax-grid-basic,
+	.rv-djmax-grid-new {
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+	}
 }
 @container (min-width: 720px) {
 	.rv-djmax-b100 {

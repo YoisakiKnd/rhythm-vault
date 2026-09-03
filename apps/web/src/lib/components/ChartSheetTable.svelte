@@ -16,9 +16,50 @@
 	const scoreHeader = $derived(game === 'djmax' ? 'V 值' : game === 'chunithm' ? '分数' : '达成率');
 	const ratingHeader = $derived(game === 'djmax' ? 'DJPower' : '单曲 rating');
 	const kind = $derived(scoreKindOf(game));
+
+	function ratingText(row: ChartSheetRow): string {
+		if (row.mine?.rating == null) return '—';
+		return Number.isInteger(row.mine.rating) ? String(row.mine.rating) : row.mine.rating.toFixed(2);
+	}
 </script>
 
-<div class="overflow-x-auto">
+{#snippet marks(row: ChartSheetRow)}
+	{#if row.isPp}
+		<span class="badge badge-success badge-xs">{game === 'djmax' ? 'PP' : '理论'}</span>
+	{/if}
+	{#if row.isFc}
+		<span class="badge badge-info badge-xs">{game === 'djmax' ? 'MC' : 'FC'}</span>
+	{/if}
+	{#if badgeText(game, row.mine?.badges)}
+		<span class="badge badge-outline badge-xs">{badgeText(game, row.mine?.badges)}</span>
+	{/if}
+{/snippet}
+
+<div class="md:hidden space-y-2">
+	{#each rows as row (row.chartKey)}
+		<a
+			href="/library/{game}/song/{row.numericId}"
+			class="flex gap-3 rounded-xl px-1 py-2 {!row.mine ? 'opacity-55' : ''}"
+		>
+			<img src={row.cover} alt="" class="w-12 h-12 rounded object-cover shrink-0 bg-base-300" loading="lazy" />
+			<div class="min-w-0 flex-1">
+				<p class="truncate font-medium">{row.title}</p>
+				<p class="mt-0.5 truncate text-xs text-base-content/50">
+					{row.diffLabel}
+					{row.levelLabel}{#if row.floorName}
+						· {row.floorName}{/if}{#if row.artist} · {row.artist}{/if}
+				</p>
+				<p class="mt-1 font-mono text-sm {scoreToneClass(kind, row.mine?.score ?? null)}">
+					{row.mine ? compactScore(row.mine.score, kind) : '未游玩'}
+					<span class="ml-2 text-base-content/55">{ratingText(row)}</span>
+				</p>
+				<div class="mt-1 flex flex-wrap gap-1">{@render marks(row)}</div>
+			</div>
+		</a>
+	{/each}
+</div>
+
+<div class="hidden overflow-x-auto md:block">
 	<table class="table table-sm">
 		<thead>
 			<tr>
@@ -61,24 +102,8 @@
 					<td class="font-mono whitespace-nowrap {scoreToneClass(kind, row.mine?.score ?? null)}">
 						{row.mine ? compactScore(row.mine.score, kind) : '未游玩'}
 					</td>
-					<td class="font-mono whitespace-nowrap">
-						{row.mine?.rating != null
-							? Number.isInteger(row.mine.rating)
-								? String(row.mine.rating)
-								: row.mine.rating.toFixed(2)
-							: '—'}
-					</td>
-					<td class="whitespace-nowrap">
-						{#if row.isPp}
-							<span class="badge badge-success badge-xs">{game === 'djmax' ? 'PP' : '理论'}</span>
-						{/if}
-						{#if row.isFc}
-							<span class="badge badge-info badge-xs">{game === 'djmax' ? 'MC' : 'FC'}</span>
-						{/if}
-						{#if badgeText(game, row.mine?.badges)}
-							<span class="badge badge-outline badge-xs">{badgeText(game, row.mine?.badges)}</span>
-						{/if}
-					</td>
+					<td class="font-mono whitespace-nowrap">{ratingText(row)}</td>
+					<td class="whitespace-nowrap">{@render marks(row)}</td>
 				</tr>
 			{/each}
 		</tbody>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import DataPageTabs from '$lib/components/DataPageTabs.svelte';
 	import ScoreProfileView from '$lib/components/ScoreProfileView.svelte';
+	import { emptyScoresCta } from '$lib/copy';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -9,6 +10,7 @@
 	const history = $derived(
 		data.game === 'djmax' ? data.history.filter((p) => p.button === data.button) : data.history
 	);
+	const cta = $derived(emptyScoresCta(data.error));
 
 	function channelHref(src: 'df' | 'lxns') {
 		const q = new URLSearchParams({ game: data.game });
@@ -19,9 +21,8 @@
 
 <header>
 	<h1 class="rv-page-title">
-		查分 · {data.gameLabel}{#if data.srcLabel}<span class="text-base font-normal text-base-content/50"> · {data.srcLabel}</span>{/if}
+		查分 · {data.gameLabel}
 	</h1>
-	<p class="rv-page-desc">本地成绩库按渠道分开。水鱼和落雪各自同步，切换后看到的是对应渠道的数据。</p>
 </header>
 
 <DataPageTabs game={data.game} src={data.src} button={data.button} username={data.username} />
@@ -45,11 +46,12 @@
 	username={data.username}
 	game={data.game}
 	gameLabel={data.gameLabel}
+	shareGameLabel={data.shareGameLabel}
 	srcLabel={data.srcLabel}
 	{view}
 	{history}
 	error={data.error}
 	push={data.push}
-	emptyHref="/dashboard/links"
-	emptyLabel="去绑定并同步"
+	emptyHref={cta?.href}
+	emptyLabel={cta?.label}
 />

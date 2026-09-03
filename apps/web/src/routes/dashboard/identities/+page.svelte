@@ -59,12 +59,6 @@
 											<input type="hidden" name="id" value={identity.id} />
 											<button class="btn btn-ghost btn-xs">刷新验证码</button>
 										</form>
-										{#if data.isAdmin}
-											<form method="POST" action="?/markVerified" use:enhance>
-												<input type="hidden" name="id" value={identity.id} />
-												<button class="btn btn-ghost btn-xs">标记已验证</button>
-											</form>
-										{/if}
 									{/if}
 									<form method="POST" action="?/remove" use:enhance>
 										<input type="hidden" name="id" value={identity.id} />

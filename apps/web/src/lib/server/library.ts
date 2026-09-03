@@ -9,9 +9,9 @@ import { parseCsvParam } from '../library-query';
 export type GameKey = 'maimai' | 'chunithm' | 'djmax';
 
 export const GAME_LABEL: Record<GameKey, string> = {
-	maimai: '舞萌 DX 国服',
-	chunithm: '中二节奏 国服',
-	djmax: 'DJMAX RESPECT V'
+	maimai: '舞萌 DX',
+	chunithm: '中二节奏',
+	djmax: 'DJMAX'
 };
 
 const LIB_FILES: Record<GameKey, string> = {

@@ -37,6 +37,9 @@
 			el.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 			el.async = true;
 			el.defer = true;
+			const nonceEl = document.querySelector('script[nonce]');
+			const nonce = nonceEl instanceof HTMLScriptElement ? nonceEl.nonce : '';
+			if (nonce) el.nonce = nonce;
 			el.dataset.rvTurnstile = '1';
 			el.onload = () => resolve();
 			el.onerror = () => reject(new Error('Turnstile 脚本加载失败'));

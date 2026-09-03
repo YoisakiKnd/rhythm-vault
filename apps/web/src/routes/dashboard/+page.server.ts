@@ -1,17 +1,17 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { AuthError, listApiKeys } from '$lib/server/auth';
+import { AuthError } from '$lib/server/auth';
 import { getLinked, LINK_SOURCES } from '$lib/server/links';
 import { runManualSync } from '$lib/server/sync';
 import { takeToken } from '$lib/server/rate-limit';
 import { latestScoreAt } from '@rhythm-vault/sync';
 import { latestRatingsByGame } from '$lib/server/scores';
+import { friendlySyncError } from '$lib/copy';
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { user } = await parent();
-	const [links, keys, ratings] = await Promise.all([
+	const [links, ratings] = await Promise.all([
 		Promise.all(LINK_SOURCES.map((s) => getLinked(user.id, s))),
-		listApiKeys(user.id),
 		latestRatingsByGame(user.id)
 	]);
 	const lastSync = {
@@ -21,7 +21,6 @@ export const load: PageServerLoad = async ({ parent }) => {
 	};
 	return {
 		links,
-		keys: keys.map((k) => ({ id: k.id, revokedAt: k.revokedAt?.toISOString() ?? null })),
 		lastSync,
 		ratings,
 		profilePublic: user.profilePublic,
@@ -40,8 +39,10 @@ export const actions: Actions = {
 			const summary = await runManualSync(user.id);
 			return { summary };
 		} catch (err) {
-			const message = err instanceof AuthError ? err.message : '同步失败';
-			return fail(err instanceof AuthError ? err.status : 500, { error: message });
+			if (err instanceof AuthError) {
+				return fail(err.status, { error: err.message });
+			}
+			return fail(500, { error: friendlySyncError(err) });
 		}
 	}
 };

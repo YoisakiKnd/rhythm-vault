@@ -9,13 +9,13 @@
 		{
 			id: 'divingfish',
 			label: '水鱼查分器',
-			desc: '舞萌 / 中二。绑用户名可查 b50 / b30；OAuth 后拉完整成绩。可与落雪同时绑，按谱面合并。',
+			desc: '舞萌 / 中二。填用户名，或用授权登录。可以和水鱼、落雪同时绑。',
 			placeholder: '水鱼用户名'
 		},
 		{
 			id: 'lxns',
 			label: '落雪查分器',
-			desc: '舞萌 / 中二。绑好友码可查 b50 / b30（站点需开发者 Token，且你在落雪开放第三方查询）；OAuth 后拉完整成绩。',
+			desc: '舞萌 / 中二。填好友码（需在落雪打开第三方查询），或用授权登录。',
 			placeholder: '落雪好友码'
 		},
 		{
@@ -35,9 +35,9 @@
 </script>
 
 <header>
-	<h1 class="rv-page-title">数据源</h1>
+	<h1 class="rv-page-title">绑定查分器</h1>
 	<p class="rv-page-desc">
-		决定成绩从哪同步。手动绑定会先向上游核对昵称；OAuth 会回填并标记已验证。档案公开请到
+		绑定后可在概览页同步成绩。档案是否公开请到
 		<a class="link" href="/dashboard/settings">设置</a>。
 	</p>
 </header>
@@ -82,7 +82,7 @@
 					{#if link?.hasOAuth && link?.needsReauth}
 						<span class="badge badge-warning badge-sm">授权过期</span>
 					{:else if link?.hasOAuth}
-						<span class="badge badge-success badge-sm badge-outline">OAuth</span>
+						<span class="badge badge-success badge-sm badge-outline">已授权</span>
 					{/if}
 					{#if link?.externalId}
 						<span class="badge badge-ghost badge-sm font-mono">
@@ -104,10 +104,10 @@
 				{#if src.id !== 'varchive'}
 					{#if src.id === 'divingfish' ? data.oauthConfigured.divingfish : data.oauthConfigured.lxns}
 						<a class="btn btn-outline btn-sm" href="/api/links/{src.id}/start">
-							OAuth{link?.hasOAuth ? ' 刷新' : ''}
+							{link?.hasOAuth ? '重新授权' : '授权登录'}
 						</a>
 					{:else}
-						<span class="text-xs text-base-content/40">站点未配置 OAuth</span>
+						<span class="text-xs text-base-content/40">授权登录暂不可用</span>
 					{/if}
 				{/if}
 				{#if link}

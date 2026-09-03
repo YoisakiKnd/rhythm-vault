@@ -45,10 +45,12 @@ describe('game context', () => {
 		expect(functionHref('sheet', 'maimai', { src: 'lxns' })).toBe('/sheet/maimai?src=lxns');
 		expect(functionHref('sheet', 'djmax', { diff: '8B' })).toBe('/sheet/djmax?diff=8B');
 		expect(functionHref('compare', 'chunithm')).toBe('/compare?game=chunithm');
+		expect(functionHref('docs', 'maimai')).toBe('/api-docs');
 		expect(functionActive('library', '/library/maimai/song/8')).toBe(true);
 		expect(functionActive('ranking', '/library/maimai')).toBe(false);
 		expect(functionActive('sheet', '/sheet/chunithm')).toBe(true);
 		expect(functionActive('compare', '/compare')).toBe(true);
+		expect(functionActive('docs', '/api-docs')).toBe(true);
 	});
 
 	test('切游戏时留在当前功能并带上记忆的变体', () => {

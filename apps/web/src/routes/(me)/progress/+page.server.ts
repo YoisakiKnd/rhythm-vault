@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { AuthError } from '$lib/server/auth';
 import { catalogSrcLabel } from '$lib/server/channel';
+import { LOAD_FAILED } from '$lib/copy';
 import { parseCatalogSrc } from '$lib/catalog-nav';
 import {
 	chunithmProgress,
@@ -33,7 +34,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		else if (game === 'chunithm') data = await chunithmProgress(user.id, src);
 		else data = await djmaxProgress(user.id);
 	} catch (err) {
-		error = err instanceof AuthError ? err.message : '加载失败，请稍后再试';
+		error = err instanceof AuthError ? err.message : LOAD_FAILED;
 	}
 	return { game, src, srcLabel: game === 'djmax' ? '' : catalogSrcLabel(src), data, error, username: user.username };
 };

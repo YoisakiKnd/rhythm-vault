@@ -3,14 +3,15 @@
 	import RatingChips from '$lib/components/RatingChips.svelte';
 	import ScoreProfileView from '$lib/components/ScoreProfileView.svelte';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
+	import { emptyScoresCta } from '$lib/copy';
 	import { page } from '$app/state';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const games = [
-		{ key: 'maimai', label: '舞萌' },
-		{ key: 'chunithm', label: '中二' },
+		{ key: 'maimai', label: '舞萌 DX' },
+		{ key: 'chunithm', label: '中二节奏' },
 		{ key: 'djmax', label: 'DJMAX' }
 	] as const;
 
@@ -26,6 +27,7 @@
 	const history = $derived(
 		data.game === 'djmax' ? data.history.filter((p) => p.button === data.button) : data.history
 	);
+	const cta = $derived(data.isOwner ? emptyScoresCta(data.error) : null);
 	let compareTo = $state('');
 	let copied = $state(false);
 
@@ -133,15 +135,16 @@
 		username={data.username}
 		game={data.game}
 		gameLabel={data.gameLabel}
+		shareGameLabel={data.shareGameLabel}
 		srcLabel={data.srcLabel}
 		{view}
 		{history}
 		error={data.error}
-		emptyHref={data.isOwner ? '/dashboard/links' : undefined}
-		emptyLabel={data.isOwner ? '去绑定并同步' : undefined}
+		emptyHref={cta?.href}
+		emptyLabel={cta?.label}
 	>
 		{#snippet extraActions()}
-			<form class="join" action="/compare" method="GET">
+			<form class="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center" action="/compare" method="GET">
 				<input type="hidden" name="a" value={data.username} />
 				<input type="hidden" name="game" value={data.game} />
 				{#if data.src === 'lxns'}
@@ -151,13 +154,13 @@
 					<input type="hidden" name="button" value={data.button} />
 				{/if}
 				<input
-					class="join-item input input-sm w-40"
+					class="input input-sm w-full sm:w-40"
 					name="b"
 					placeholder="对方用户名"
 					bind:value={compareTo}
 					required
 				/>
-				<button class="join-item btn btn-sm btn-primary" type="submit">与他人对比</button>
+				<button class="btn btn-sm btn-primary w-full sm:w-auto" type="submit">与他人对比</button>
 			</form>
 		{/snippet}
 	</ScoreProfileView>

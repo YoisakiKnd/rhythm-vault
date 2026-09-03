@@ -12,7 +12,7 @@
 </script>
 
 {#if ratings.length === 0}
-	<p class="text-sm text-base-content/45">还没有 rating 记录。绑定数据源并同步后会出现在这里。</p>
+	<p class="text-sm text-base-content/45">还没有 Rating 记录。绑定查分器并同步后会出现在这里。</p>
 {:else}
 	<div class="flex flex-wrap gap-2">
 		{#each ratings as r (r.game)}

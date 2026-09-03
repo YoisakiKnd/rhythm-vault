@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const button = parseButtonParam(url.searchParams.get('button'));
 	const src = parseCatalogSrc(url.searchParams.get('src'));
 	const [loaded, ratings] = await Promise.all([
-		loadScoreView(player.id, game, button, { src }),
+		loadScoreView(player.id, game, button, { src, visitor: !player.isOwner }),
 		latestRatingsByGame(player.id)
 	]);
 	return {

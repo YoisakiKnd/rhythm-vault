@@ -52,11 +52,9 @@
 
 <header>
 	<h1 class="rv-page-title">
-		完成表 · {data.gameLabel}{#if data.game !== 'djmax'}<span class="text-base font-normal text-base-content/50"> · {data.src === 'lxns' ? '落雪' : '水鱼'}</span>{/if}
+		完成表 · {data.gameLabel}
 	</h1>
-	<p class="rv-page-desc">
-		按等级 / 难度 / 曲包列出全部谱面，并贴上你的成绩。未游玩显示为空。默认不含宴谱与 WORLD'S END。
-	</p>
+	<p class="rv-page-desc">按等级和难度看刷了哪些谱。未游玩的会空着。</p>
 </header>
 
 <DataPageTabs game={data.game} src={data.src} button={data.button} username={data.username} />

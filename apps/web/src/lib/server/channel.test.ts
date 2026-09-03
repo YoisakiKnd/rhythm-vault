@@ -3,8 +3,9 @@ import { catalogSrcLabel, catalogSrcToSource, channelEmptyMessage, scoreChannelF
 
 describe('channelEmptyMessage', () => {
 	test('点名渠道', () => {
-		expect(channelEmptyMessage('lxns')).toContain('落雪暂无该游戏的成绩数据');
-		expect(channelEmptyMessage('df')).toContain('水鱼暂无该游戏的成绩数据');
+		expect(channelEmptyMessage('lxns')).toContain('落雪里还没有这款游戏的成绩');
+		expect(channelEmptyMessage('df')).toContain('水鱼里还没有这款游戏的成绩');
+		expect(channelEmptyMessage('lxns', false)).toContain('还没有绑定落雪');
 	});
 
 	test('src 映射到绑定 source', () => {

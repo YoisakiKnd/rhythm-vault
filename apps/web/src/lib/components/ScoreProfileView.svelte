@@ -2,6 +2,7 @@
 	import RatingChart from '$lib/components/RatingChart.svelte';
 	import ScoreBestTables from '$lib/components/ScoreBestTables.svelte';
 	import ShareCard from '$lib/components/ShareCard.svelte';
+	import PushSuggestPanel from '$lib/components/PushSuggestPanel.svelte';
 	import { compactRating, djmaxClassLabel, ratingAccentColor } from '$lib/best-display';
 	import { downloadShareImage } from '$lib/download-share';
 	import { bestHeadline, ratingSum, viewSections, type ScoreView } from '$lib/score-types';
@@ -11,17 +12,23 @@
 		chartId: string;
 		title: string;
 		label: string;
+		cover: string;
+		numericId: string;
 		ds: number;
+		isNew: boolean;
+		achievement: number | null;
 		currentRating: number | null;
 		target: number;
 		targetRating: number;
 		gain: number;
+		effort: number | null;
 	}
 
 	let {
 		username,
 		game,
 		gameLabel,
+		shareGameLabel = '',
 		srcLabel = '',
 		view,
 		history,
@@ -34,11 +41,17 @@
 		username: string;
 		game: string;
 		gameLabel: string;
+		shareGameLabel?: string;
 		srcLabel?: string;
 		view: ScoreView | null;
 		history: Array<{ t: string; v: number; button?: number }>;
 		error: string | null;
-		push?: { b50Min: number; improve: PushEntry[]; unplayed: PushEntry[] } | null;
+		push?: {
+			b50Min: number;
+			comfort: { dsLo: number; dsHi: number; typicalAch: number } | null;
+			improve: PushEntry[];
+			unplayed: PushEntry[];
+		} | null;
 		emptyHref?: string;
 		emptyLabel?: string;
 		extraActions?: Snippet;
@@ -76,7 +89,7 @@
 	<div class="rv-panel mt-4 p-8 text-center">
 		<p class="text-base-content/60">{error}</p>
 		{#if emptyHref}
-			<a href={emptyHref} class="btn btn-primary btn-sm mt-3">{emptyLabel ?? '去绑定数据源'}</a>
+			<a href={emptyHref} class="btn btn-primary btn-sm mt-3">{emptyLabel ?? '去绑定'}</a>
 		{/if}
 	</div>
 {:else if view}
@@ -127,48 +140,22 @@
 	</div>
 
 	<div class="rv-panel mt-4 p-5">
-		<h2 class="font-semibold">rating 历史</h2>
+		<h2 class="font-semibold">Rating 走势</h2>
 		<div class="mt-3">
 			<RatingChart points={history} />
 		</div>
 	</div>
 
-	{#if game === 'maimai' && push}
-		{#each [{ name: '已游玩可提升', list: push.improve, hint: `B50 末位 ${push.b50Min}` }, { name: '未游玩 · 可挤入 B50', list: push.unplayed, hint: `B50 末位 ${push.b50Min}` }] as section (section.name)}
-			{#if section.list.length > 0}
-				<div class="rv-panel mt-4 p-5">
-					<h2 class="font-semibold">
-						推分建议 · {section.name}
-						<span class="badge badge-outline badge-sm ml-1">{section.hint}</span>
-					</h2>
-					<div class="mt-3 overflow-x-auto">
-						<table class="table table-sm">
-							<thead>
-								<tr><th>曲目</th><th>定数</th><th>当前</th><th>建议目标</th><th>目标 rating</th><th>预期</th></tr>
-							</thead>
-							<tbody>
-								{#each section.list as s (s.chartId)}
-									<tr>
-										<td>{s.title}</td>
-										<td><span class="badge badge-ghost badge-sm font-mono">{s.label} · {s.ds}</span></td>
-										<td>{s.currentRating ?? '未游玩'}</td>
-										<td>{s.target.toFixed(2)}%</td>
-										<td class="font-bold">{s.targetRating}</td>
-										<td class="text-success">+{s.gain}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-					<p class="mt-2 text-xs text-base-content/45">
-						预期增量 = 目标档位单曲 rating {section.name.includes('未游玩') ? '− 当前 B50 末位' : '− 当前单曲 rating'}，实际 B50 变化以完整组成为准。
-					</p>
-				</div>
-			{/if}
-		{/each}
-	{/if}
-
 	<ScoreBestTables {view} />
+
+	{#if game === 'maimai' && push}
+		<PushSuggestPanel
+			b50Min={push.b50Min}
+			comfort={push.comfort}
+			improve={push.improve}
+			unplayed={push.unplayed}
+		/>
+	{/if}
 
 	{#if sharing}
 		<div
@@ -178,7 +165,7 @@
 			<div bind:this={cardEl}>
 				<ShareCard
 					{username}
-					{gameLabel}
+					gameLabel={shareGameLabel || gameLabel}
 					channelLabel={view.kind === 'djmax' ? `${view.button}B` : srcLabel}
 					kind={view.kind}
 					rating={view.rating}

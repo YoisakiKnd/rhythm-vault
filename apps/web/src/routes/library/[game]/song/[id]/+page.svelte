@@ -193,7 +193,7 @@
 	{#if data.loggedIn}
 		<p class="text-xs text-base-content/50 mt-4">
 			{#if playedCount === 0}
-				尚未游玩或尚未同步该曲成绩。请在控制台绑定数据源后点击「立即同步」。
+				尚未游玩或尚未同步该曲成绩。请先绑定查分器并同步。
 			{:else}
 				成绩来自最近一次同步{#if data.syncedAt}（{new Date(data.syncedAt).toLocaleString('zh-CN')}）{/if}；未显示分数的谱面为尚未游玩或未同步。
 			{/if}

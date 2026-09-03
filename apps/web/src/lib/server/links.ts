@@ -48,7 +48,7 @@ const SOURCE_ALIASES: Record<string, LinkSource> = {
 
 export function assertSource(source: string): LinkSource {
 	const mapped = SOURCE_ALIASES[source];
-	if (!mapped) throw new AuthError(404, `未知的数据源: ${source}`);
+	if (!mapped) throw new AuthError(404, '未知的查分器');
 	return mapped;
 }
 
@@ -56,7 +56,7 @@ export function encryptionKeyRequired(): string {
 	try {
 		return assertEncryptionKey();
 	} catch {
-		throw new AuthError(500, 'ENCRYPTION_KEY 未配置、太短或仍为占位值，无法处理 OAuth 令牌');
+		throw new AuthError(500, '授权登录暂时不可用，请改用手动绑定。');
 	}
 }
 
@@ -131,7 +131,7 @@ export async function previewExternal(source: LinkSource, externalId: string): P
 			return {
 				...base,
 				nickname: null,
-				warning: '站点未配置落雪开发者 Token，无法在线核验昵称。请确认好友码无误后绑定。'
+				warning: '暂时无法在线核对昵称，请确认好友码无误后再绑定。'
 			};
 		}
 		try {
@@ -195,7 +195,7 @@ export async function startOAuth(source: LinkSource): Promise<OAuthFlow> {
 	const cfg = getAppConfig();
 	const state = randomToken(16);
 	if (source === 'divingfish') {
-		if (!cfg.divingFish) throw new AuthError(400, '站点未配置水鱼 OAuth（.env 缺少 DIVING_FISH_*）');
+		if (!cfg.divingFish) throw new AuthError(400, '水鱼授权登录暂不可用，请改用手动绑定。');
 		const pkce = await generatePkce();
 		return {
 			url: await divingFishAuthorizeUrl(cfg.divingFish, { state, codeChallenge: pkce.codeChallenge }),
@@ -204,10 +204,10 @@ export async function startOAuth(source: LinkSource): Promise<OAuthFlow> {
 		};
 	}
 	if (source === 'lxns') {
-		if (!cfg.lxns) throw new AuthError(400, '站点未配置落雪 OAuth（.env 缺少 LXNS_*）');
+		if (!cfg.lxns) throw new AuthError(400, '落雪授权登录暂不可用，请改用手动绑定。');
 		return { url: lxnsAuthorizeUrl(cfg.lxns, { state }), state };
 	}
-	throw new AuthError(400, '该数据源不支持 OAuth，请使用手动绑定');
+	throw new AuthError(400, '这个查分器请用手动绑定');
 }
 
 export interface PendingFlow {
@@ -233,22 +233,22 @@ export async function completeOAuth(
 	pending: PendingFlow
 ): Promise<void> {
 	if (pending.source !== source || pending.exp < Date.now()) {
-		throw new AuthError(400, '授权会话已过期，请重新发起授权');
+		throw new AuthError(400, '授权已过期，请重新点授权登录');
 	}
 	if (!safeEqual(pending.state, state)) {
-		throw new AuthError(400, '授权会话校验失败，请重新发起授权');
+		throw new AuthError(400, '授权校验失败，请重新点授权登录');
 	}
 	const cfg = getAppConfig();
 	let tokens: TokenResponse;
 	if (source === 'divingfish') {
-		if (!cfg.divingFish) throw new AuthError(400, '站点未配置水鱼 OAuth');
-		if (!pending.codeVerifier) throw new AuthError(400, 'PKCE 上下文缺失，请重新发起授权');
+		if (!cfg.divingFish) throw new AuthError(400, '水鱼授权登录暂不可用，请改用手动绑定。');
+		if (!pending.codeVerifier) throw new AuthError(400, '授权校验失败，请重新点授权登录');
 		tokens = await divingFishExchangeToken(cfg.divingFish, { code, codeVerifier: pending.codeVerifier });
 	} else if (source === 'lxns') {
-		if (!cfg.lxns) throw new AuthError(400, '站点未配置落雪 OAuth');
+		if (!cfg.lxns) throw new AuthError(400, '落雪授权登录暂不可用，请改用手动绑定。');
 		tokens = await lxnsExchangeToken(cfg.lxns, { code });
 	} else {
-		throw new AuthError(400, '该数据源不支持 OAuth');
+		throw new AuthError(400, '这个查分器请用手动绑定');
 	}
 	await upsertTokens(userId, source, tokens, { dropRefresh: source === 'divingfish' });
 	if (source === 'lxns') await persistLxnsFriendCode(userId, tokens.access_token);
@@ -337,7 +337,7 @@ export async function getAccessToken(userId: number, source: 'divingfish' | 'lxn
 		.from(linkedAccounts)
 		.where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.source, source)))
 		.limit(1);
-	if (!row) throw new AuthError(400, `未完成 ${SOURCE_LABEL[source]} OAuth 授权`);
+	if (!row) throw new AuthError(400, `还没有完成${SOURCE_LABEL[source]}授权登录`);
 
 	if (row.accessTokenEnc && row.tokenExpiresAt && row.tokenExpiresAt.getTime() > Date.now() + 15_000) {
 		return decryptSecret(row.accessTokenEnc, encryptionKeyRequired());
@@ -345,7 +345,7 @@ export async function getAccessToken(userId: number, source: 'divingfish' | 'lxn
 
 	if (source === 'divingfish') {
 		const cfg = getAppConfig().divingFish;
-		if (!cfg) throw new AuthError(400, '站点未配置水鱼 OAuth');
+		if (!cfg) throw new AuthError(400, '水鱼授权登录暂不可用，请改用手动绑定。');
 		const username = row.externalId?.trim();
 		if (username) {
 			try {
@@ -363,7 +363,7 @@ export async function getAccessToken(userId: number, source: 'divingfish' | 'lxn
 	}
 
 	if (!row.refreshTokenEnc) {
-		if (!row.accessTokenEnc) throw new AuthError(400, `未完成 ${SOURCE_LABEL[source]} OAuth 授权`);
+		if (!row.accessTokenEnc) throw new AuthError(400, `还没有完成${SOURCE_LABEL[source]}授权登录`);
 		await markNeedsReauth(row.id);
 		throw new AuthError(400, `${SOURCE_LABEL[source]}授权已过期，请到控制台重新授权`);
 	}
@@ -386,7 +386,7 @@ export async function getAccessToken(userId: number, source: 'divingfish' | 'lxn
 				await markNeedsReauth(row.id);
 				throw new AuthError(400, `${SOURCE_LABEL[source]}授权已过期，请到控制台重新授权`);
 			}
-			throw new AuthError(502, `${SOURCE_LABEL[source]}令牌刷新失败，请稍后再试`);
+			throw new AuthError(502, `${SOURCE_LABEL[source]}授权刷新失败，请重新授权或稍后再试`);
 		}
 	})().finally(() => refreshInflight.delete(row.id));
 	refreshInflight.set(row.id, task);

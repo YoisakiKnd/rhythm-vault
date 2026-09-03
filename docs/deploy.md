@@ -206,5 +206,6 @@ WantedBy=multi-user.target
 - 水鱼 / 落雪 OAuth 绑定往返成功
 - `/scores`、`/progress`、`/sheet/maimai` 三个页面出数
 - Bot Key：普通 Key 带 `?qq=` 被拒；审批通过的 Bot Key 查未开「允许 Bot 查询」的用户被拒
-- `/dashboard/scores` 与 `/dashboard/progress` 返回 301；`/dashboard/keys` 301 到 `/dashboard/developer`
+- `/dashboard/scores` 与 `/dashboard/progress` 返回 301；`/dashboard/keys` 301 到 `/dashboard/developer`；`/dashboard/developer/review` 301 到 `/admin`
+- 非站长访问 `/admin` 为 403；站长侧栏可见「管理后台」
 - `docker compose logs sync-songs` 里三个 JSON 都写成功

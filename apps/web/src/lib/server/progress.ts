@@ -1,6 +1,7 @@
-import { getDb, scores, and, eq, sql } from '@rhythm-vault/db';
+import { getDb, linkedAccounts, scores, and, eq, sql } from '@rhythm-vault/db';
 import { AuthError } from './auth';
-import { channelEmptyMessage, catalogSrcToSource } from './channel';
+import { catalogSrcToSource } from './channel';
+import { scoresEmptyMessage } from '$lib/copy';
 import type { CatalogSrc } from '$lib/catalog-nav';
 import { fcSql, iterateCharts, ppSql, chartKeyOf } from './chart-slots';
 import {
@@ -84,11 +85,19 @@ async function requireHasScores(userId: number, game: string, source?: string): 
 		)
 		.limit(1);
 	if (!row) {
-		const hint =
-			source === 'lxns' || source === 'divingfish'
-				? channelEmptyMessage(source === 'lxns' ? 'lxns' : 'df')
-				: '该账号暂无同步数据：请先绑定数据源并同步';
-		throw new AuthError(404, hint);
+		const linkSource =
+			source === 'lxns' ? 'lxns' : source === 'divingfish' ? 'divingfish' : 'varchive';
+		const [link] = await getDb()
+			.select({
+				externalId: linkedAccounts.externalId,
+				token: linkedAccounts.accessTokenEnc
+			})
+			.from(linkedAccounts)
+			.where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.source, linkSource)))
+			.limit(1);
+		const bound = Boolean(link?.externalId || link?.token);
+		const src = linkSource === 'varchive' ? 'varchive' : source === 'lxns' ? 'lxns' : 'df';
+		throw new AuthError(404, scoresEmptyMessage({ bound, src }));
 	}
 }
 

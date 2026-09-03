@@ -1,4 +1,4 @@
-import { getDb, ratingSnapshots, scores, and, asc, desc, eq, gte, isNotNull, like, not, sql, type SQL } from '@rhythm-vault/db';
+import { getDb, linkedAccounts, ratingSnapshots, scores, and, asc, desc, eq, gte, isNotNull, like, not, sql, type SQL } from '@rhythm-vault/db';
 import { vaMaxDjPower } from '@rhythm-vault/adapters';
 import {
 	chuniRatingOf,
@@ -14,15 +14,37 @@ import {
 	type PushSuggestion
 } from '@rhythm-vault/core';
 import { AuthError } from './auth';
-import { channelEmptyMessage } from './channel';
+import { scoresEmptyMessage } from '$lib/copy';
 import { chartMetaMap, getLibrary, numericSongId, scoreChartKey } from './library';
 import { pickMaimaiB50FromRows, type MaimaiB50Picked, type ScorePickRow } from './score-pick';
+
+export type ScoreChannel = 'divingfish' | 'lxns';
 
 // 查分接口全部读取本地归一化 scores 表（同步任务负责写入），
 // 单条查询走主键，b50/b100 走 (user, game, rating) 索引 ORDER BY rating DESC LIMIT n。
 
-export const NO_DATA_HINT =
-	'该账号暂无同步数据：请先在控制台绑定查询账号并点击「立即同步」';
+async function isBound(userId: number, source: 'divingfish' | 'lxns' | 'varchive'): Promise<boolean> {
+	const [row] = await getDb()
+		.select({
+			externalId: linkedAccounts.externalId,
+			token: linkedAccounts.accessTokenEnc
+		})
+		.from(linkedAccounts)
+		.where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.source, source)))
+		.limit(1);
+	return Boolean(row?.externalId || row?.token);
+}
+
+async function emptyHint(userId: number, source?: ScoreChannel): Promise<string> {
+	if (!source) {
+		return scoresEmptyMessage({ bound: await isBound(userId, 'varchive'), src: 'varchive' });
+	}
+	const link = source === 'lxns' ? 'lxns' : 'divingfish';
+	return scoresEmptyMessage({
+		bound: await isBound(userId, link),
+		src: source === 'lxns' ? 'lxns' : 'df'
+	});
+}
 
 // ---------- rating 历史（曲线展示用） ----------
 
@@ -83,13 +105,6 @@ export async function ratingHistory(userId: number, game: string): Promise<Ratin
 		const detail = (r.detail ?? {}) as { button?: number };
 		return { t: r.createdAt.toISOString(), v: r.rating, button: detail.button };
 	});
-}
-
-export type ScoreChannel = 'divingfish' | 'lxns';
-
-function emptyHint(source?: ScoreChannel): string {
-	if (!source) return NO_DATA_HINT;
-	return channelEmptyMessage(source === 'lxns' ? 'lxns' : 'df');
 }
 
 function sourceClause(source?: string): SQL | undefined {
@@ -171,7 +186,9 @@ export type MaimaiB50Result = MaimaiB50Picked;
 
 export async function maimaiB50(userId: number, source: ScoreChannel = 'divingfish'): Promise<MaimaiB50Result> {
 	const srcEq = eq(scores.source, source);
-	if (!(await hasGameScores(userId, 'maimai_dx', srcEq))) throw new AuthError(404, emptyHint(source));
+	if (!(await hasGameScores(userId, 'maimai_dx', srcEq))) {
+		throw new AuthError(404, await emptyHint(userId, source));
+	}
 	const [oldBest, newBest, syncedAt] = await Promise.all([
 		topRated(userId, 'maimai_dx', false, 35, srcEq),
 		topRated(userId, 'maimai_dx', true, 15, srcEq),
@@ -256,7 +273,9 @@ const CHUNI_NOT_WE = not(like(scores.chartKey, '%:5'));
 /** b30 + 新曲 b20：SQL 取 top 后再用曲库定数重算（排除 WORLD'S END） */
 export async function chunithmB30(userId: number, source: ScoreChannel = 'divingfish'): Promise<ChuniB30Result> {
 	const srcEq = eq(scores.source, source);
-	if (!(await hasGameScores(userId, 'chunithm', srcEq))) throw new AuthError(404, emptyHint(source));
+	if (!(await hasGameScores(userId, 'chunithm', srcEq))) {
+		throw new AuthError(404, await emptyHint(userId, source));
+	}
 	const [oldRows, newRows, syncedAt] = await Promise.all([
 		topRated(userId, 'chunithm', false, 30, and(CHUNI_NOT_WE, srcEq)),
 		topRated(userId, 'chunithm', true, 20, and(CHUNI_NOT_WE, srcEq)),
@@ -276,7 +295,7 @@ export async function chunithmB30(userId: number, source: ScoreChannel = 'diving
 		const badges = (r.badges ?? {}) as { fc?: unknown };
 		if (typeof badges.fc === 'string' && badges.fc) badgeByKey.set(r.chartKey, { fc: badges.fc });
 	}
-	if (engineInput.length === 0) throw new AuthError(404, emptyHint(source));
+	if (engineInput.length === 0) throw new AuthError(404, await emptyHint(userId, source));
 	const res = computeChuniRating(engineInput);
 	const decorate = (e: ChuniBestEntry): ChuniBestEntryView => {
 		const m = meta.get(e.chartId);
@@ -386,7 +405,9 @@ function toDjmaxRec(r: {
 export async function djmaxB100(userId: number, button: number): Promise<DjmaxB100Result> {
 	if (![4, 5, 6, 8].includes(button)) throw new AuthError(400, '键位必须是 4/5/6/8');
 	const prefix = like(scores.chartKey, `djmax:${button}B:%`);
-	if (!(await hasGameScores(userId, 'djmax', prefix))) throw new AuthError(404, NO_DATA_HINT);
+	if (!(await hasGameScores(userId, 'djmax', prefix))) {
+		throw new AuthError(404, await emptyHint(userId));
+	}
 	const eligible = and(prefix, gte(scores.score, MIN_SCORE));
 	const [basicRows, newRows, syncedAt, maxPower] = await Promise.all([
 		topRated(userId, 'djmax', false, 70, eligible),
@@ -473,24 +494,34 @@ export async function djmaxSong(
 export interface MaimaiPushEntry extends PushSuggestion {
 	title: string;
 	label: string;
+	cover: string;
+	numericId: string;
 }
 
 export interface MaimaiPushResult {
 	/** 当前 b50 末位 rating（挤入 b50 的门槛） */
 	b50Min: number;
+	/** 按 B50 估的可打定数带 */
+	comfort: { dsLo: number; dsHi: number; typicalAch: number } | null;
 	improve: MaimaiPushEntry[];
 	unplayed: MaimaiPushEntry[];
 }
 
 export async function maimaiPush(userId: number, source: ScoreChannel = 'divingfish'): Promise<MaimaiPushResult> {
 	const rows = await gameRows(userId, 'maimai_dx', source);
-	if (rows.length === 0) throw new AuthError(404, emptyHint(source));
+	if (rows.length === 0) throw new AuthError(404, await emptyHint(userId, source));
 	const b50 = pickMaimaiB50FromRows(rows);
 	const entries = [...b50.oldBest, ...b50.newBest];
-	if (entries.length === 0) throw new AuthError(404, emptyHint(source));
+	if (entries.length === 0) throw new AuthError(404, await emptyHint(userId, source));
 	const b50Min = Math.min(...entries.map((e) => e.rating ?? 0));
 
 	const scoreByKey = new Map(rows.map((r) => [r.chartKey, r.score]));
+	const meta = chartMetaMap('maimai');
+	const b50Snap = entries.flatMap((e) => {
+		const m = meta.get(e.chartKey);
+		if (!m || e.score == null || e.rating == null) return [];
+		return [{ ds: m.value, achievement: e.score, rating: e.rating }];
+	});
 	const lib = getLibrary('maimai');
 	const charts: PushChart[] = [];
 	let lastSongId = '';
@@ -511,12 +542,22 @@ export async function maimaiPush(userId: number, source: ScoreChannel = 'divingf
 		idx++;
 	}
 
-	const res = pushSuggestions(charts, b50Min, { limit: 10 });
-	const meta = chartMetaMap('maimai');
-	const decorate = (s: PushSuggestion): MaimaiPushEntry => ({
-		...s,
-		title: meta.get(s.chartId)?.title ?? s.chartId,
-		label: meta.get(s.chartId)?.label ?? ''
-	});
-	return { b50Min, improve: res.improve.map(decorate), unplayed: res.unplayed.map(decorate) };
+	const res = pushSuggestions(charts, b50Min, { limit: 10, b50: b50Snap });
+	const decorate = (s: PushSuggestion): MaimaiPushEntry => {
+		const m = meta.get(s.chartId);
+		const numericId = s.chartId.split(':')[1] ?? '';
+		return {
+			...s,
+			title: m?.title ?? s.chartId,
+			label: m?.label ?? '',
+			cover: m?.cover ?? '',
+			numericId
+		};
+	};
+	return {
+		b50Min,
+		comfort: res.comfort,
+		improve: res.improve.map(decorate),
+		unplayed: res.unplayed.map(decorate)
+	};
 }

@@ -88,7 +88,7 @@
 <section class="rv-panel mt-3 p-5">
 	<h2 class="font-semibold">档案公开</h2>
 	<p class="mt-1 text-sm text-base-content/55">
-		打开后，访客可访问 <code class="text-xs">/u/{data.account.username}</code>，并出现在排行榜与玩家对比里。这与下面的 Bot 查询是两件事。
+		打开后，访客可看你的主页，并出现在排行榜与玩家对比里。这与下面的 Bot 查询是两件事。
 	</p>
 	<form method="POST" action="?/privacy" use:enhance class="mt-3">
 		<label class="flex cursor-pointer items-center gap-3">
@@ -107,7 +107,7 @@
 <section class="rv-panel mt-3 p-5">
 	<h2 class="font-semibold">Bot 查询</h2>
 	<p class="mt-1 text-sm text-base-content/55">
-		打开后，持<strong>站长签发的 Bot Key</strong>的客户端可用你已验证的 QQ 号查询本账号成绩。默认关闭。档案是否公开不影响这项。
+		打开后，群 Bot 可用你已验证的 QQ 号查询本账号成绩。默认关闭，和档案公开无关。
 	</p>
 	<form method="POST" action="?/botQuery" use:enhance class="mt-3">
 		<label class="flex cursor-pointer items-center gap-3">
@@ -132,7 +132,7 @@
 <section class="rv-panel mt-3 p-5">
 	<h2 class="font-semibold">浏览偏好</h2>
 	<p class="mt-1 text-sm text-base-content/55">
-		侧栏切游戏、数据源、DJMAX 键位时也会记住。这里改完后，下次打开曲库 / 查分会跟过去。
+		侧栏切换游戏、水鱼 / 落雪、DJMAX 键位时也会记住。这里改完后，下次打开曲库和查分会跟过去。
 	</p>
 	<div class="mt-4 space-y-3">
 		<div>

@@ -1,5 +1,6 @@
 import { AuthError } from './auth';
 import { catalogSrcLabel, catalogSrcToSource } from './channel';
+import { SHARE_GAME_LABEL, LOAD_FAILED, VISITOR_NO_SCORES } from '$lib/copy';
 import { chartMetaMap, GAME_LABEL, type ChartMeta } from './library';
 import {
 	chunithmB30,
@@ -57,13 +58,14 @@ export async function loadScoreView(
 	userId: number,
 	game: GameViewKey,
 	button: number,
-	opts?: { includePush?: boolean; includeHistory?: boolean; src?: CatalogSrc }
+	opts?: { includePush?: boolean; includeHistory?: boolean; src?: CatalogSrc; visitor?: boolean }
 ): Promise<{
 	view: ScoreView | null;
 	error: string | null;
 	push: MaimaiPushResult | null;
 	history: RatingHistoryPoint[];
 	gameLabel: string;
+	shareGameLabel: string;
 	src: CatalogSrc;
 	srcLabel: string;
 }> {
@@ -113,10 +115,23 @@ export async function loadScoreView(
 			};
 		}
 	} catch (err) {
-		error = err instanceof AuthError ? err.message : '加载失败，请稍后再试';
+		if (opts?.visitor && err instanceof AuthError && err.status === 404) {
+			error = VISITOR_NO_SCORES;
+		} else {
+			error = err instanceof AuthError ? err.message : LOAD_FAILED;
+		}
 	}
 
 	const dbGame = game === 'maimai' ? 'maimai_dx' : game;
 	const history = opts?.includeHistory === false ? [] : await ratingHistory(userId, dbGame);
-	return { view, error, push, history, gameLabel: GAME_LABEL[game], src, srcLabel };
+	return {
+		view,
+		error,
+		push,
+		history,
+		gameLabel: GAME_LABEL[game],
+		shareGameLabel: SHARE_GAME_LABEL[game],
+		src,
+		srcLabel
+	};
 }

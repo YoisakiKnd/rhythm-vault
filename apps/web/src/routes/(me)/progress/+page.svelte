@@ -1,6 +1,7 @@
 <script lang="ts">
 	import DataPageTabs from '$lib/components/DataPageTabs.svelte';
 	import ProgressStackBar from '$lib/components/ProgressStackBar.svelte';
+	import { emptyScoresCta } from '$lib/copy';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -8,6 +9,7 @@
 	const view = $derived(data.data);
 	const fcLabel = $derived(data.game === 'djmax' ? 'MC' : 'FC');
 	const ppLabel = $derived(data.game === 'djmax' ? 'PP' : '理论');
+	const cta = $derived(emptyScoresCta(data.error));
 
 	function totals(buckets: Array<{ total: number; played: number; fc: number; pp: number }>) {
 		return buckets.reduce(
@@ -38,11 +40,8 @@
 
 <header>
 	<h1 class="rv-page-title">
-		完成度 · {data.game === 'maimai' ? '舞萌' : data.game === 'chunithm' ? '中二' : 'DJMAX'}{#if data.srcLabel}<span class="text-base font-normal text-base-content/50"> · {data.srcLabel}</span>{/if}
+		完成度 · {data.game === 'maimai' ? '舞萌 DX' : data.game === 'chunithm' ? '中二节奏' : 'DJMAX'}
 	</h1>
-	<p class="rv-page-desc">
-		黄条是{ppLabel}，青条是{fcLabel}，主色是已游玩。按版本、等级或曲包看刷图进度。
-	</p>
 </header>
 
 <DataPageTabs game={data.game} src={data.src} button={undefined} username={data.username} />
@@ -57,7 +56,9 @@
 {#if data.error}
 	<div class="rv-panel mt-4 p-8 text-center">
 		<p class="text-base-content/60">{data.error}</p>
-		<a href="/dashboard/links" class="btn btn-primary btn-sm mt-3">去绑定并同步</a>
+		{#if cta}
+			<a href={cta.href} class="btn btn-primary btn-sm mt-3">{cta.label}</a>
+		{/if}
 	</div>
 {:else if view}
 	{#if overview}

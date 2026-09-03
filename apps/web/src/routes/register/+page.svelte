@@ -15,7 +15,7 @@
 		<div class="card-body">
 			<h1 class="card-title text-xl">注册</h1>
 			<p class="text-sm text-base-content/70">
-				注册后在控制台绑定查分器账号、生成 API Key，即可通过 API 查询成绩。
+				注册后绑定水鱼、落雪或 V-ARCHIVE，即可在站内查分、看进度。
 			</p>
 			{#if form?.error}
 				<div class="alert alert-error text-sm">{form.error}</div>

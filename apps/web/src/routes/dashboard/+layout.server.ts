@@ -1,6 +1,5 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import { isAdminUsername } from '$lib/server/config';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	if (url.pathname.startsWith('/dashboard/scores')) {
@@ -13,5 +12,5 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		redirect(301, '/dashboard/developer');
 	}
 	if (!locals.user) redirect(302, '/login');
-	return { user: locals.user, isAdmin: isAdminUsername(locals.user.username) };
+	return { user: locals.user };
 };

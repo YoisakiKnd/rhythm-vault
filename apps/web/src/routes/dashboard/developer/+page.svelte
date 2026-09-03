@@ -28,7 +28,7 @@
 		</p>
 	</div>
 	{#if data.isAdmin}
-		<a class="btn btn-outline btn-sm" href="/dashboard/developer/review">审批申请</a>
+		<a class="btn btn-outline btn-sm" href="/admin">管理后台</a>
 	{/if}
 </header>
 

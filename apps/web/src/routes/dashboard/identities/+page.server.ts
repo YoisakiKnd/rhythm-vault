@@ -1,10 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { AuthError } from '$lib/server/auth';
-import { isAdminUsername } from '$lib/server/config';
 import {
 	addIdentity,
-	adminMarkOwnVerified,
 	listIdentities,
 	refreshVerifyCode,
 	removeIdentity
@@ -12,7 +10,7 @@ import {
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { user } = await parent();
-	return { identities: await listIdentities(user.id), isAdmin: isAdminUsername(user.username) };
+	return { identities: await listIdentities(user.id) };
 };
 
 export const actions: Actions = {
@@ -47,20 +45,6 @@ export const actions: Actions = {
 		} catch (err) {
 			return fail(err instanceof AuthError ? err.status : 400, {
 				error: err instanceof AuthError ? err.message : '刷新失败'
-			});
-		}
-	},
-	markVerified: async ({ request, locals }) => {
-		const user = locals.user;
-		if (!user) return fail(401, { error: '未登录' });
-		if (!isAdminUsername(user.username)) return fail(403, { error: '仅站长可手动确认归属' });
-		const id = Number((await request.formData()).get('id'));
-		try {
-			await adminMarkOwnVerified(user.id, id);
-			return { message: '已标记为已验证' };
-		} catch (err) {
-			return fail(err instanceof AuthError ? err.status : 400, {
-				error: err instanceof AuthError ? err.message : '操作失败'
 			});
 		}
 	},

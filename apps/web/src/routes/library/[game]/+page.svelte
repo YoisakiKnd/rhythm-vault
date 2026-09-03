@@ -196,6 +196,10 @@
 		</p>
 	</div>
 
+	<div
+		class="sticky z-20 -mx-3 mb-1 bg-base-100/95 px-3 py-2 backdrop-blur-md lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+		style="top: calc(3rem + env(safe-area-inset-top, 0px))"
+	>
 	<input
 		class="input input-sm w-full sm:max-w-sm"
 		placeholder="搜索曲名 / ID…"
@@ -226,6 +230,7 @@
 			onDlcs={setDlcs}
 			onReset={resetFilters}
 		/>
+	</div>
 	</div>
 
 	<div class="mt-4 space-y-1.5">

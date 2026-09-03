@@ -24,6 +24,7 @@ import {
 	type DjmaxRecord,
 	type MaimaiScore
 } from '@rhythm-vault/core';
+import { failSyncDetail } from './friendly-error';
 
 export interface SyncSourceResult {
 	ok: boolean;
@@ -447,7 +448,7 @@ export async function syncUserPublic(
 			touchedDjmax = true;
 			summary.djmax = { ok: true, detail: `四个键位共 ${count} 条成绩` };
 		} catch (err) {
-			summary.djmax = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+			summary.djmax = { ok: false, detail: failSyncDetail(err) };
 		}
 	}
 
@@ -458,9 +459,9 @@ export async function syncUserPublic(
 			const rows = maimaiRows((resp.records ?? []) as AnyRecord[]);
 			await upsertFromSource(userId, 'maimai_dx', rows, 'divingfish');
 			touchedMaimai = true;
-			summary.maimai_dx = { ok: true, detail: `b50 已同步（${rows.length} 条）` };
+			summary.maimai_dx = { ok: true, detail: `舞萌成绩已更新（${rows.length} 条）` };
 		} catch (err) {
-			summary.maimai_dx = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+			summary.maimai_dx = { ok: false, detail: failSyncDetail(err) };
 		}
 		await sleep(1000);
 		try {
@@ -468,9 +469,9 @@ export async function syncUserPublic(
 			const rows = chuniRows((resp.records ?? []) as AnyRecord[]);
 			await upsertFromSource(userId, 'chunithm', rows, 'divingfish');
 			touchedChuni = true;
-			summary.chunithm = { ok: true, detail: `b30 已同步（${rows.length} 条）` };
+			summary.chunithm = { ok: true, detail: `中二成绩已更新（${rows.length} 条）` };
 		} catch (err) {
-			summary.chunithm = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+			summary.chunithm = { ok: false, detail: failSyncDetail(err) };
 		}
 	}
 
@@ -498,18 +499,15 @@ export async function syncUserPublic(
 				summary.chunithm = { ok: true, detail: `落雪 b30 已同步（${chuniRowsOut.length} 条）` };
 			}
 		} catch (err) {
-			summary.lxns = { ok: false, detail: err instanceof Error ? err.message : String(err) };
-			if (!summary.maimai_dx) {
-				summary.maimai_dx = { ok: false, detail: err instanceof Error ? err.message : String(err) };
-			}
-			if (!summary.chunithm) {
-				summary.chunithm = { ok: false, detail: err instanceof Error ? err.message : String(err) };
-			}
+			const detail = failSyncDetail(err);
+			summary.lxns = { ok: false, detail };
+			if (!summary.maimai_dx) summary.maimai_dx = { ok: false, detail };
+			if (!summary.chunithm) summary.chunithm = { ok: false, detail };
 		}
 	} else if (lxnsFriend && !lxnsDev && !bindings.some((b) => b.source === 'lxns' && b.hasTokens)) {
 		summary.lxns = {
 			ok: false,
-			detail: '已绑定好友码，但站点未配置 LXNS_DEVELOPER_TOKEN，公开同步无法按好友码拉成绩（可用 OAuth）'
+			detail: '落雪公开查询未开通，请用授权登录后再同步。'
 		};
 	}
 
@@ -723,11 +721,11 @@ async function pullOAuthScores(
 			);
 			summary.oauth = {
 				ok: true,
-				detail: `完整成绩已同步（水鱼 maimai ${maimaiCount} 条 / chunithm ${chuniCount} 条）`
+				detail: `水鱼成绩已更新（舞萌 ${maimaiCount} 条 / 中二 ${chuniCount} 条）`
 			};
 		}
 	} catch (err) {
-		summary.oauth = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+		summary.oauth = { ok: false, detail: failSyncDetail(err) };
 	}
 
 	try {
@@ -750,11 +748,11 @@ async function pullOAuthScores(
 			);
 			summary.lxns = {
 				ok: true,
-				detail: `完整成绩已同步（落雪 maimai ${maimaiCount} 条 / chunithm ${chuniCount} 条）`
+				detail: `落雪成绩已更新（舞萌 ${maimaiCount} 条 / 中二 ${chuniCount} 条）`
 			};
 		}
 	} catch (err) {
-		summary.lxns = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+		summary.lxns = { ok: false, detail: failSyncDetail(err) };
 	}
 }
 

@@ -40,6 +40,14 @@ describe('OAuth 回调路由', () => {
 		expect(oauthProviderErrorMessage('access_denied')).toBe('授权被取消或失败，请重试');
 		expect(oauthFailLocation(new Error('leak'))).not.toContain('leak');
 	});
+	test('绑定失败文案不出现 .env / Token / PKCE', () => {
+		const linksSrc = readFileSync(new URL('../lib/server/links.ts', import.meta.url), 'utf8');
+		expect(linksSrc).not.toContain('PKCE');
+		expect(linksSrc).not.toContain('.env 缺少');
+		expect(linksSrc).not.toContain('开发者 Token');
+		expect(linksSrc).not.toContain('ENCRYPTION_KEY 未配置');
+		expect(callbackSrc).not.toContain('code/state');
+	});
 });
 
 describe('登录 / 注册 actions', () => {
@@ -131,17 +139,21 @@ describe('隐私与查分 API', () => {
 		const keysSrc = readRoute('./dashboard/keys/+page.server.ts');
 		const layoutSrc = readRoute('./dashboard/+layout.server.ts');
 		const devSrc = readRoute('./dashboard/developer/+page.server.ts');
-		const reviewSrc = readRoute('./dashboard/developer/review/+page.server.ts');
+		const oldReviewSrc = readRoute('./dashboard/developer/review/+page.server.ts');
+		const adminLayoutSrc = readRoute('./admin/+layout.server.ts');
+		const adminSrc = readRoute('./admin/+page.server.ts');
 		expect(keysSrc).toContain("redirect(301, '/dashboard/developer')");
 		expect(layoutSrc).toContain('/dashboard/keys');
 		expect(devSrc).toContain('createApiKey(user.id, name)');
 		expect(devSrc).toContain('createBotApiKey');
 		expect(devSrc).toContain('submitApplication');
 		expect(devSrc).not.toContain('setApiKeyScope');
-		expect(reviewSrc).toContain('isAdminUsername');
-		expect(reviewSrc).toContain('approveApplication');
-		expect(reviewSrc).toContain('rejectApplication');
-		expect(reviewSrc).toContain('revokeDeveloperAccess');
+		expect(oldReviewSrc).toContain("redirect(301, '/admin')");
+		expect(adminLayoutSrc).toContain('isAdminUsername');
+		expect(adminSrc).toContain('approveApplication');
+		expect(adminSrc).toContain('rejectApplication');
+		expect(adminSrc).toContain('revokeDeveloperAccess');
+		expect(adminSrc).toContain('adminMarkVerified');
 		expect(authSrc).toContain('MAX_BOT_KEYS_PER_USER');
 		expect(authSrc).toContain('downgradeBotKeysForUser');
 		expect(authSrc).toContain("eq(apiKeys.scope, 'bot')");
