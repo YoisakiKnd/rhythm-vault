@@ -1,6 +1,7 @@
 import { getDb, linkedAccounts, ratingSnapshots, scores, and, asc, desc, eq, gte, isNotNull, like, not, sql, type SQL } from '@rhythm-vault/db';
 import { vaMaxDjPower } from '@rhythm-vault/adapters';
 import {
+	chuniPushSuggestions,
 	chuniRatingOf,
 	computeChuniRating,
 	computeDjmaxB100,
@@ -8,6 +9,8 @@ import {
 	MIN_SCORE,
 	pushSuggestions,
 	type ChuniBestEntry,
+	type ChuniPushChart,
+	type ChuniPushSuggestion,
 	type ChuniScore,
 	type DjmaxRecord,
 	type PushChart,
@@ -365,7 +368,15 @@ async function maxDjPower(button: number): Promise<number> {
 	if (Date.now() - maxDjPowerCache.at > 3600_000) maxDjPowerCache = { at: Date.now(), values: {} };
 	const cached = maxDjPowerCache.values[button];
 	if (cached) return cached;
-	const value = await vaMaxDjPower(button);
+	let value: number;
+	try {
+		value = await vaMaxDjPower(button);
+	} catch (err) {
+		console.warn('[scores] vaMaxDjPower 失败，改用曲库估算', button, err);
+		const { estimateMaxDjPowerFromLibrary } = await import('@rhythm-vault/sync');
+		value = estimateMaxDjPowerFromLibrary(button);
+	}
+	if (!(value > 0)) throw new AuthError(502, '暂时无法计算 DJMAX 总评，请稍后重试');
 	maxDjPowerCache.values[button] = value;
 	return value;
 }
@@ -409,13 +420,23 @@ export async function djmaxB100(userId: number, button: number): Promise<DjmaxB1
 		throw new AuthError(404, await emptyHint(userId));
 	}
 	const eligible = and(prefix, gte(scores.score, MIN_SCORE));
+	// 多取一些再按 chartKey 去重，避免 manual / varchive 同谱面双计
 	const [basicRows, newRows, syncedAt, maxPower] = await Promise.all([
-		topRated(userId, 'djmax', false, 70, eligible),
-		topRated(userId, 'djmax', true, 30, eligible),
+		topRated(userId, 'djmax', false, 140, eligible),
+		topRated(userId, 'djmax', true, 60, eligible),
 		latestUpdatedIso(userId, 'djmax'),
 		maxDjPower(button)
 	]);
-	const recs = [...basicRows, ...newRows]
+	const pickBest = (rows: typeof basicRows) => {
+		const best = new Map<string, (typeof basicRows)[number]>();
+		for (const r of rows) {
+			const prev = best.get(r.chartKey);
+			if (!prev || (r.rating ?? -Infinity) > (prev.rating ?? -Infinity)) best.set(r.chartKey, r);
+		}
+		return [...best.values()]
+			.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.score ?? 0) - (a.score ?? 0));
+	};
+	const recs = [...pickBest(basicRows).slice(0, 70), ...pickBest(newRows).slice(0, 30)]
 		.map(toDjmaxRec)
 		.filter((r): r is DjmaxRecord => r !== null);
 	const b100 = computeDjmaxB100(
@@ -556,6 +577,99 @@ export async function maimaiPush(userId: number, source: ScoreChannel = 'divingf
 	};
 	return {
 		b50Min,
+		comfort: res.comfort,
+		improve: res.improve.map(decorate),
+		unplayed: res.unplayed.map(decorate)
+	};
+}
+
+// ---------- chunithm 推分建议 ----------
+
+export interface ChuniPushEntry extends ChuniPushSuggestion {
+	title: string;
+	label: string;
+	cover: string;
+	numericId: string;
+}
+
+export interface ChuniPushResultView {
+	/** 当前 best50 末位 rating（挤入门槛） */
+	bestMin: number;
+	/** 按 B30+B20 估的可打定数带 */
+	comfort: { dsLo: number; dsHi: number; typicalScore: number } | null;
+	improve: ChuniPushEntry[];
+	unplayed: ChuniPushEntry[];
+}
+
+export async function chunithmPush(
+	userId: number,
+	source: ScoreChannel = 'divingfish'
+): Promise<ChuniPushResultView> {
+	const rows = await gameRows(userId, 'chunithm', source);
+	if (rows.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	const meta = chartMetaMap('chunithm');
+	const engineInput: ChuniScore[] = [];
+	for (const r of rows) {
+		if (r.score === null) continue;
+		if (isChuniWorldsEndChartKey(r.chartKey)) continue;
+		const m = meta.get(r.chartKey);
+		if (!m || m.value === 0) continue;
+		engineInput.push({ chartId: r.chartKey, ds: m.value, isNew: m.isNew, score: r.score });
+	}
+	if (engineInput.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	const b = computeChuniRating(engineInput);
+	const entries = [...b.oldBest, ...b.newBest];
+	if (entries.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	const bestMin = Math.min(...entries.map((e) => e.rating));
+
+	const scoreByKey = new Map(rows.map((r) => [r.chartKey, r.score]));
+	const best50Snap = entries.flatMap((e) => {
+		const m = meta.get(e.chartId);
+		if (!m) return [];
+		return [{ ds: m.value, score: e.score, rating: e.rating }];
+	});
+	const lib = getLibrary('chunithm');
+	const charts: ChuniPushChart[] = [];
+	let lastSongId = '';
+	let idx = 0;
+	for (const c of lib.charts) {
+		if (c.songId !== lastSongId) {
+			lastSongId = c.songId;
+			idx = 0;
+		}
+		if (c.difficultyKey === 'WORLDS_END' || c.difficultyKey === 'OTHER') {
+			idx++;
+			continue;
+		}
+		if (c.levelLabel === '-' && c.levelValue === 0) {
+			idx++;
+			continue;
+		}
+		const numericId = numericSongId(c.songId);
+		const key = scoreChartKey('chunithm', numericId, c, idx);
+		charts.push({
+			chartId: key,
+			ds: c.levelValue,
+			isNew: c.isNew,
+			score: scoreByKey.get(key) ?? null
+		});
+		idx++;
+	}
+
+	const res = chuniPushSuggestions(charts, bestMin, { limit: 10, best50: best50Snap });
+	const decorate = (s: ChuniPushSuggestion): ChuniPushEntry => {
+		const m = meta.get(s.chartId);
+		const numericId = s.chartId.split(':')[1] ?? '';
+		return {
+			...s,
+			title: m?.title ?? s.chartId,
+			label: m?.label ?? '',
+			cover: m?.cover ?? '',
+			numericId
+		};
+	};
+	return {
+		bestMin,
 		comfort: res.comfort,
 		improve: res.improve.map(decorate),
 		unplayed: res.unplayed.map(decorate)

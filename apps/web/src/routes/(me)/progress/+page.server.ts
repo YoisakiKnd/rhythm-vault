@@ -3,6 +3,7 @@ import { AuthError } from '$lib/server/auth';
 import { catalogSrcLabel } from '$lib/server/channel';
 import { LOAD_FAILED } from '$lib/copy';
 import { parseCatalogSrc } from '$lib/catalog-nav';
+import { parseButtonParam } from '$lib/score-types';
 import {
 	chunithmProgress,
 	djmaxProgress,
@@ -26,6 +27,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		| 'chunithm'
 		| 'djmax';
 	const src = parseCatalogSrc(url.searchParams.get('src'));
+	const button = parseButtonParam(url.searchParams.get('button'));
 
 	let data: ProgressView | null = null;
 	let error: string | null = null;
@@ -36,5 +38,5 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 	} catch (err) {
 		error = err instanceof AuthError ? err.message : LOAD_FAILED;
 	}
-	return { game, src, srcLabel: game === 'djmax' ? '' : catalogSrcLabel(src), data, error, username: user.username };
+	return { game, button, src, srcLabel: game === 'djmax' ? '' : catalogSrcLabel(src), data, error, username: user.username };
 };

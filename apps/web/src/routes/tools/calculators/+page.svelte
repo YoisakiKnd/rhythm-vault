@@ -45,6 +45,12 @@
 <main class="mx-auto max-w-xl px-3 sm:px-4 py-6 sm:py-8">
 	<h1 class="text-xl sm:text-2xl font-bold">计算器 · {tab === 'maimai' ? '舞萌' : tab === 'chunithm' ? '中二' : 'DJMAX'}</h1>
 	<p class="text-sm text-base-content/70 mt-1">与查分器口径一致，在浏览器本地计算。用左侧切换游戏。</p>
+	{#if tab === 'chunithm'}
+		<p class="text-sm mt-2">
+			<a class="link" href="/tools/chunithm-rating">中二推分 / 计算器说明</a>
+			<span class="text-base-content/50"> · 加成表与 B30+B20 口径</span>
+		</p>
+	{/if}
 
 
 	{#if tab === 'maimai'}

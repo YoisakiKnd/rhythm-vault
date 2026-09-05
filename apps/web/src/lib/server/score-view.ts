@@ -4,10 +4,12 @@ import { SHARE_GAME_LABEL, LOAD_FAILED, VISITOR_NO_SCORES } from '$lib/copy';
 import { chartMetaMap, GAME_LABEL, type ChartMeta } from './library';
 import {
 	chunithmB30,
+	chunithmPush,
 	djmaxB100,
 	maimaiB50,
 	maimaiPush,
 	ratingHistory,
+	type ChuniPushResultView,
 	type MaimaiPushResult,
 	type RatingHistoryPoint
 } from './scores';
@@ -62,7 +64,7 @@ export async function loadScoreView(
 ): Promise<{
 	view: ScoreView | null;
 	error: string | null;
-	push: MaimaiPushResult | null;
+	push: MaimaiPushResult | ChuniPushResultView | null;
 	history: RatingHistoryPoint[];
 	gameLabel: string;
 	shareGameLabel: string;
@@ -73,7 +75,7 @@ export async function loadScoreView(
 	const srcLabel = game === 'djmax' ? '' : catalogSrcLabel(src);
 	let view: ScoreView | null = null;
 	let error: string | null = null;
-	let push: MaimaiPushResult | null = null;
+	let push: MaimaiPushResult | ChuniPushResultView | null = null;
 	try {
 		if (game === 'maimai') {
 			const source = catalogSrcToSource(src);
@@ -94,7 +96,8 @@ export async function loadScoreView(
 				}
 			}
 		} else if (game === 'chunithm') {
-			const b30 = await chunithmB30(userId, catalogSrcToSource(src));
+			const source = catalogSrcToSource(src);
+			const b30 = await chunithmB30(userId, source);
 			view = {
 				kind: 'chunithm',
 				rating: b30.rating,
@@ -102,6 +105,13 @@ export async function loadScoreView(
 				newBest: b30.newBest,
 				syncedAt: b30.syncedAt
 			};
+			if (opts?.includePush) {
+				try {
+					push = await chunithmPush(userId, source);
+				} catch (err) {
+					console.warn('[scores] 中二推分建议计算失败', err);
+				}
+			}
 		} else {
 			const b100 = await djmaxB100(userId, button);
 			const meta = chartMetaMap('djmax');

@@ -103,7 +103,7 @@
 	{#if data.onlyNew}<input type="hidden" name="new" value="1" />{/if}
 	{#if data.src === 'lxns'}<input type="hidden" name="src" value="lxns" />{/if}
 	{#if data.dlcs.length}<input type="hidden" name="dlc" value={data.dlcs.join(',')} />{/if}
-	<input class="input input-sm w-full sm:w-64" name="q" value={data.q} placeholder="搜曲名 / 曲师 / ID" />
+	<input class="input input-sm w-full sm:w-64" name="q" value={data.q} placeholder="搜曲名 / 曲师 / ID" aria-label="搜曲名 / 曲师 / ID" />
 	<button class="btn btn-sm btn-outline">搜索</button>
 </form>
 

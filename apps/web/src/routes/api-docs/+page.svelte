@@ -63,6 +63,7 @@
 			hint: '需要 Key',
 			rows: [
 				{ method: 'GET', path: '/api/v1/chunithm/b30', desc: '旧曲 B30 + 新曲 B20' },
+				{ method: 'GET', path: '/api/v1/chunithm/push', desc: '推分建议：按 B30+B20 定数水平，优先离下一档近的已打谱' },
 				{ method: 'GET', path: '/api/v1/chunithm/progress', desc: '完成度：按等级' },
 				{ method: 'GET', path: '/api/v1/chunithm/sheet', desc: '完成表' },
 				{ method: 'GET', path: '/api/v1/chunithm/song?id=3', desc: '整曲 + 各谱面成绩' },

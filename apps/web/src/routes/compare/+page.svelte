@@ -76,10 +76,12 @@
 		<input type="hidden" name="game" value={data.game} />
 		{#if data.game === 'djmax'}
 			<input type="hidden" name="button" value={data.button} />
+		{:else if data.src === 'lxns'}
+			<input type="hidden" name="src" value="lxns" />
 		{/if}
-		<input class="input input-sm w-40" name="a" value={data.aName} placeholder="玩家 A" required />
+		<input class="input input-sm w-40" name="a" value={data.aName} placeholder="玩家 A" required aria-label="玩家 A" />
 		<span class="self-center text-sm opacity-50">vs</span>
-		<input class="input input-sm w-40" name="b" value={data.bName} placeholder="玩家 B" required />
+		<input class="input input-sm w-40" name="b" value={data.bName} placeholder="玩家 B" required aria-label="玩家 B" />
 		<button class="btn btn-primary btn-sm" type="submit">对比</button>
 	</form>
 

@@ -168,7 +168,7 @@ export async function upsertScores(
 	userId: number,
 	game: string,
 	rows: ScoreRow[],
-	source: 'divingfish' | 'lxns' | 'varchive'
+	source: 'divingfish' | 'lxns' | 'varchive' | 'manual'
 ): Promise<number> {
 	if (rows.length === 0) return 0;
 	const db = getDb();
@@ -210,7 +210,7 @@ export function mergeSyncStats(prev: unknown, game: string, count: number): Reco
 
 export async function recordSourceSync(
 	userId: number,
-	source: 'divingfish' | 'lxns' | 'varchive',
+	source: 'divingfish' | 'lxns' | 'varchive' | 'manual',
 	game: string,
 	count: number
 ): Promise<void> {
@@ -617,17 +617,57 @@ function toDjmaxRecord(r: {
 	};
 }
 
+
+/** 曲库估算该键位理论满 DJPower（top100 PP 之和）；V-ARCHIVE DEV 不可达时兜底 */
+export function estimateMaxDjPowerFromLibrary(button: number): number {
+	const file = LIB_FILES.djmax;
+	if (!file) return 0;
+	const envDir = process.env.RV_DATA_DIR;
+	const path = envDir ? join(envDir, file) : new URL(`../../data/${file}`, import.meta.url);
+	if (!existsSync(path)) return 0;
+	try {
+		const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+			charts: Array<{ difficultyKey: string; levelValue: number }>;
+		};
+		const pps: number[] = [];
+		const prefix = `${button}B `;
+		for (const c of parsed.charts) {
+			if (!c.difficultyKey.startsWith(prefix)) continue;
+			if (typeof c.levelValue === 'number' && c.levelValue > 0) pps.push(c.levelValue);
+		}
+		pps.sort((a, b) => b - a);
+		return pps.slice(0, 100).reduce((s, x) => s + x, 0);
+	} catch {
+		return 0;
+	}
+}
+
+async function resolveMaxDjPower(button: number): Promise<number> {
+	try {
+		const v = await vaMaxDjPower(button);
+		if (Number.isFinite(v) && v > 0) return v;
+	} catch (err) {
+		console.warn('[sync] vaMaxDjPower 失败，改用曲库估算', button, err);
+	}
+	const est = estimateMaxDjPowerFromLibrary(button);
+	if (est > 0) return est;
+	throw new Error(`无法取得 ${button}B 的 maxDjPower`);
+}
+
 /** djmax 总 DJPower：各键位旧曲 top70 + 新曲 top30，按 maxDjPower 归一化，逐键位写快照 */
 export async function snapshotDjmaxRating(userId: number): Promise<number | null> {
-	const rows = await getDb()
-		.select({
-			chartKey: scores.chartKey,
-			score: scores.score,
-			rating: scores.rating,
-			isNew: scores.isNew
-		})
-		.from(scores)
-		.where(and(eq(scores.userId, userId), eq(scores.game, 'djmax')));
+	const rows = bestRowPerChart(
+		await getDb()
+			.select({
+				chartKey: scores.chartKey,
+				score: scores.score,
+				rating: scores.rating,
+				isNew: scores.isNew
+			})
+			.from(scores)
+			.where(and(eq(scores.userId, userId), eq(scores.game, 'djmax'))),
+		(r) => r.rating
+	);
 	const recs = rows.map(toDjmaxRecord).filter((r): r is DjmaxRecord => r !== null);
 	if (recs.length === 0) return null;
 	let best: number | null = null;
@@ -635,7 +675,7 @@ export async function snapshotDjmaxRating(userId: number): Promise<number | null
 		const prefix = `djmax:${button}B:`;
 		const buttonRecs = recs.filter((r) => r.chartId.startsWith(prefix));
 		if (buttonRecs.length === 0) continue;
-		const maxPower = await vaMaxDjPower(button);
+		const maxPower = await resolveMaxDjPower(button);
 		const b100 = computeDjmaxB100(
 			buttonRecs.filter((r) => !r.isNew),
 			buttonRecs.filter((r) => r.isNew),

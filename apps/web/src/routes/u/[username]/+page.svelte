@@ -157,6 +157,7 @@
 					class="input input-sm w-full sm:w-40"
 					name="b"
 					placeholder="对方用户名"
+					aria-label="对方用户名"
 					bind:value={compareTo}
 					required
 				/>

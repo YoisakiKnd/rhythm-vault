@@ -35,6 +35,7 @@
 
 	const user = $derived(data.user);
 	let drawerOpen = $state(false);
+	let gameMenuOpen = $state(false);
 	let remembered = $state<GameKey>('maimai');
 	let rememberedSrc = $state<CatalogSrc>('df');
 	let rememberedDiff = $state<DjmaxButton>('4B');
@@ -169,13 +170,13 @@
 
 	<div class="shrink-0 px-3">
 		<div class="rounded-box bg-base-300/50 p-2 space-y-2">
-			<div class="dropdown w-full">
+			<div class="dropdown w-full" onfocusin={() => (gameMenuOpen = true)} onfocusout={() => (gameMenuOpen = false)}>
 				<div
 					tabindex="0"
 					role="button"
 					class="btn btn-sm w-full justify-between font-normal bg-base-100"
 					aria-haspopup="menu"
-					aria-expanded="false"
+					aria-expanded={gameMenuOpen}
 					aria-label="选择游戏"
 				>
 					<span class="truncate">{gameLabel(game)}</span>
@@ -217,6 +218,9 @@
 					</a>
 				</li>
 			{/each}
+			<li>
+				<a href="/tools" class={pathname === '/tools' || pathname === '/tools/' ? 'active' : ''}>工具箱</a>
+			</li>
 			{#if user}
 				<li class="menu-title mt-2"><span>我的</span></li>
 				{#each userFns as item (item.fn)}
@@ -278,7 +282,7 @@
 			class="navbar lg:hidden sticky top-0 z-30 min-h-12 px-2 bg-base-200/90 backdrop-blur-md border-b border-base-300"
 			style="padding-top: max(0.25rem, env(safe-area-inset-top))"
 		>
-			<label for="rv-drawer" class="btn btn-ghost btn-square btn-sm" aria-label="打开菜单">
+			<label for="rv-drawer" class="btn btn-ghost btn-square btn-sm" aria-label={drawerOpen ? '关闭菜单' : '打开菜单'} aria-expanded={drawerOpen}>
 				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 20" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
 				</svg>

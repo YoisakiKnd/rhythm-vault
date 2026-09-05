@@ -5,3 +5,4 @@ export * from './rating/maimai';
 export * from './rating/maimai-push';
 export * from './rating/djmax';
 export * from './rating/chunithm';
+export * from './rating/chunithm-push';

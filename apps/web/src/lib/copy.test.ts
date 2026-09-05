@@ -49,4 +49,17 @@ describe('friendlySyncError', () => {
 		);
 		expect(friendlySyncError(new Error('weird internal'))).toBe(SYNC_FAILED_GENERIC);
 	});
+
+	test('不向用户回显 ENCRYPTION_KEY / PKCE / Token / rv_', () => {
+		for (const msg of [
+			'ENCRYPTION_KEY 未配置、太短或仍为占位值',
+			'missing PKCE code_verifier',
+			'refresh token rotate failed',
+			'Bearer rv_abcdefghijklmnopqrstuvwx'
+		]) {
+			const out = friendlySyncError(new Error(msg));
+			expect(out).not.toMatch(/ENCRYPTION_KEY|PKCE|code_verifier|refresh token|Bearer|rv_/i);
+			expect(out).not.toBe(msg);
+		}
+	});
 });

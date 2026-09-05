@@ -35,7 +35,9 @@ describe('game context', () => {
 		expect(functionHref('library', 'maimai')).toBe('/library/maimai');
 		expect(functionHref('library', 'maimai', { src: 'lxns' })).toBe('/library/maimai?src=lxns');
 		expect(functionHref('library', 'djmax', { diff: '6B' })).toBe('/library/djmax?diff=6B');
-		expect(functionHref('ranking', 'djmax')).toBe('/ranking?game=djmax');
+		expect(functionHref('ranking', 'djmax')).toBe('/ranking?game=djmax&button=4');
+		expect(functionHref('ranking', 'djmax', { diff: '8B' })).toBe('/ranking?game=djmax&button=8');
+		expect(functionHref('progress', 'djmax', { diff: '6B' })).toBe('/progress?game=djmax&button=6');
 		expect(functionHref('scores', 'chunithm')).toBe('/scores?game=chunithm');
 		expect(functionHref('scores', 'chunithm', { src: 'lxns' })).toBe('/scores?game=chunithm&src=lxns');
 		expect(functionHref('progress', 'maimai', { src: 'lxns' })).toBe(
@@ -61,8 +63,11 @@ describe('game context', () => {
 			gameSwitchHref('djmax', '/library/maimai', new URLSearchParams('src=lxns'), { diff: '6B' })
 		).toBe('/library/djmax?diff=6B');
 		expect(gameSwitchHref('djmax', '/ranking', new URLSearchParams('game=maimai'))).toBe(
-			'/ranking?game=djmax'
+			'/ranking?game=djmax&button=4'
 		);
+		expect(
+			gameSwitchHref('djmax', '/ranking', new URLSearchParams('game=maimai'), { diff: '8B' })
+		).toBe('/ranking?game=djmax&button=8');
 		expect(
 			gameSwitchHref('djmax', '/scores', new URLSearchParams('game=maimai'), {
 				diff: '5B'
@@ -72,6 +77,15 @@ describe('game context', () => {
 			'/sheet/chunithm?src=lxns'
 		);
 		expect(gameSwitchHref('chunithm', '/', new URLSearchParams())).toBeNull();
+	});
+
+	test('排行榜 / 进度保留 DJMAX 键位', () => {
+		expect(variantSwitchHref('djmax', '8B', '/ranking', new URLSearchParams('game=djmax&button=4'))).toBe(
+			'/ranking?game=djmax&button=8'
+		);
+		expect(variantSwitchHref('djmax', '5B', '/progress', new URLSearchParams('game=djmax'))).toBe(
+			'/progress?game=djmax&button=5'
+		);
 	});
 
 	test('曲库链接直达列表', () => {

@@ -14,6 +14,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			max: '14.5',
 			count: '3',
 			onlyNew: false,
+			rolled: false,
 			results: [] as Awaited<ReturnType<typeof pickRandomCharts>>['results'],
 			candidates: 0,
 			error: ''
@@ -27,6 +28,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			max: url.searchParams.get('max') ?? '14.5',
 			count: url.searchParams.get('count') ?? '3',
 			onlyNew: url.searchParams.get('new') === '1',
+			rolled: true,
 			results: [],
 			candidates: 0,
 			error: parsed.error
@@ -39,6 +41,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		max: String(parsed.query.max),
 		count: String(parsed.query.count),
 		onlyNew: parsed.query.onlyNew,
+		rolled: true,
 		results: picked.results,
 		candidates: picked.candidates,
 		error: ''

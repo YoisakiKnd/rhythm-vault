@@ -40,11 +40,11 @@
 
 <header>
 	<h1 class="rv-page-title">
-		完成度 · {data.game === 'maimai' ? '舞萌 DX' : data.game === 'chunithm' ? '中二节奏' : 'DJMAX'}
+		进度 · {data.game === 'maimai' ? '舞萌 DX' : data.game === 'chunithm' ? '中二节奏' : 'DJMAX'}
 	</h1>
 </header>
 
-<DataPageTabs game={data.game} src={data.src} button={undefined} username={data.username} />
+<DataPageTabs game={data.game} src={data.src} button={data.button} username={data.username} />
 
 {#if data.game !== 'djmax'}
 	<div class="join mt-3">

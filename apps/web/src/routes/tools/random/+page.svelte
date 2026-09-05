@@ -65,6 +65,8 @@
 
 	{#if data.error}
 		<div class="alert alert-error text-sm mt-4">{data.error}</div>
+	{:else if data.rolled && data.results.length === 0}
+		<div class="alert text-sm mt-4">没有符合条件的谱面，试试放宽定数或取消「仅新曲」。</div>
 	{/if}
 
 	{#if data.results.length > 0}
