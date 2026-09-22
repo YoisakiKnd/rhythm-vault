@@ -18,11 +18,12 @@ import { songDetailJson, type SongDetail } from '../../../lib/server/song-detail
 
 const readRoute = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
 
-async function parseError(res: Response): Promise<{ status: number; error: string }> {
-	const body = (await res.json()) as { error?: unknown };
+async function parseError(res: Response): Promise<{ status: number; error: string; code: string }> {
+	const body = (await res.json()) as { error?: unknown; code?: unknown };
 	expect(typeof body.error).toBe('string');
-	expect(Object.keys(body).sort()).toEqual(['error']);
-	return { status: res.status, error: body.error as string };
+	expect(typeof body.code).toBe('string');
+	expect(Object.keys(body).sort()).toEqual(['code', 'error']);
+	return { status: res.status, error: body.error as string, code: body.code as string };
 }
 
 /** 路由统一 catch → errorResponse 的契约形状 */
@@ -32,12 +33,14 @@ describe('v1 errorResponse 契约', () => {
 			errorResponse(new AuthError(401, '缺少 API Key，请在 Authorization: Bearer <rv_...> 中提供'))
 		);
 		expect(out.status).toBe(401);
+		expect(out.code).toBe('unauthorized');
 		expect(out.error).toContain('API Key');
 	});
 
 	test('auth failure：无效 Key → 401 { error }', async () => {
 		const out = await parseError(errorResponse(new AuthError(401, 'API Key 无效或已吊销')));
 		expect(out.status).toBe(401);
+		expect(out.code).toBe('unauthorized');
 		expect(out.error).toBe('API Key 无效或已吊销');
 	});
 
@@ -52,6 +55,7 @@ describe('v1 errorResponse 契约', () => {
 		expect(caught).toBeInstanceOf(AuthError);
 		const out = await parseError(errorResponse(caught));
 		expect(out.status).toBe(404);
+		expect(out.code).toBe('qq_unavailable');
 		expect(out.error).toBe(QUERY_TARGET_HIDDEN);
 	});
 
@@ -65,6 +69,7 @@ describe('v1 errorResponse 契约', () => {
 		}
 		const out = await parseError(errorResponse(caught));
 		expect(out.status).toBe(403);
+		expect(out.code).toBe('forbidden');
 		expect(out.error).toBe(KEY_SCOPE_DENIED);
 	});
 
@@ -77,6 +82,7 @@ describe('v1 errorResponse 契约', () => {
 		for (const msg of msgs) {
 			const out = await parseError(errorResponse(new AuthError(404, msg)));
 			expect(out.status).toBe(404);
+			expect(out.code).toBe('not_found');
 			expect(out.error).toBe(msg);
 			expect(out.error).not.toMatch(/ENCRYPTION_KEY|Bearer\s|rv_[A-Za-z0-9]{8,}/);
 		}
@@ -87,6 +93,7 @@ describe('v1 errorResponse 契约', () => {
 			errorResponse(new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）'))
 		);
 		expect(out.status).toBe(404);
+		expect(out.code).toBe('not_found');
 		expect(out.error).toContain('未找到该谱面成绩');
 	});
 });
