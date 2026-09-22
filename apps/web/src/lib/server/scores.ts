@@ -661,7 +661,7 @@ export async function chunithmPush(
 	source: ScoreChannel = 'divingfish'
 ): Promise<ChuniPushResultView> {
 	const rows = await gameRows(userId, 'chunithm', source);
-	if (rows.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	if (rows.length === 0) throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	const meta = chartMetaMap('chunithm');
 	const engineInput: ChuniScore[] = [];
 	for (const r of rows) {
@@ -671,10 +671,10 @@ export async function chunithmPush(
 		if (!m || m.value === 0) continue;
 		engineInput.push({ chartId: r.chartKey, ds: m.value, isNew: m.isNew, score: r.score });
 	}
-	if (engineInput.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	if (engineInput.length === 0) throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	const b = computeChuniRating(engineInput);
 	const entries = [...b.oldBest, ...b.newBest];
-	if (entries.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	if (entries.length === 0) throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	const bestMin = Math.min(...entries.map((e) => e.rating));
 
 	const scoreByKey = new Map(rows.map((r) => [r.chartKey, r.score]));
