@@ -12,18 +12,17 @@
 
 玩家成绩同步打上游、写入 Postgres，与曲库文件无关。曲库是第三方数据，构建产物和公开仓库都不应夹带。本地开发用 `bun run sync:songs` 写到 `packages/data/`（已 gitignore）。
 
-更新曲库：
+更新曲库（一般不用手动跑，`catalog` 每天会拉）：
 
 ```bash
 # 本地 compose
-docker compose run --rm sync-songs && docker compose restart worker
+docker compose run --rm sync-songs
 
 # 生产
-docker compose -f docker-compose.prod.yml --env-file .env run --rm sync-songs \
-  && docker compose -f docker-compose.prod.yml --env-file .env restart worker
+docker compose -f docker-compose.prod.yml --env-file .env run --rm sync-songs
 ```
 
-web 按文件 mtime 热加载；worker 进程内曲库缓存要重启才更新。空 volume 且库里还留着上次的 ETag 时，sync-songs 会忽略 ETag 重新拉，避免 304 跳过导致没有 JSON。
+web 与成绩同步都按曲库文件的修改时间重新加载，曲库更新后不必重启 worker。`catalog` 服务每 24 小时把新曲库写进 `library` volume。空 volume 且库里还留着上次的 ETag 时，sync-songs 会忽略 ETag 重新拉，避免 304 跳过导致没有 JSON。
 
 已有 `library` volume 若是旧镜像（root 属主）建出来的，升级后 `sync-songs` 可能仍无写权限。一次性修复：
 
@@ -57,7 +56,7 @@ docker compose -f docker-compose.prod.yml --env-file .env pull
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
-顺序：Postgres → migrate → **sync-songs（拉曲库）** → web + worker → Caddy（等 web `/healthz` 健康后才起来）。
+顺序：Postgres → migrate → **sync-songs（首次拉曲库）** → web + worker + catalog（之后每天再拉一次）→ Caddy（等 web `/healthz` 健康后才起来）。
 
 compose 会覆盖容器内 `DATABASE_URL` 为 `db` 主机，并写入：
 
@@ -76,14 +75,13 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 migrate 与 sync-songs 仍是一次性前置服务；有新的 Drizzle 迁移时这次 `up` 会跑它们。只想更新曲库见上文 `run --rm sync-songs`。
 
-### 4. 备份与曲库周更
+### 4. 备份与曲库日更
+
+`catalog` 服务启动后立刻拉一次曲库，之后每 24 小时再拉。成绩 worker 只读挂载，并按文件修改时间重新加载，不用为曲库重启。
 
 ```bash
 # 每天 03:15 备份 Postgres（自定义格式，保留 14 天）
 15 3 * * * /opt/rhythm-vault/scripts/backup.sh
-
-# 每周日 04:00 更新曲库并重启 worker（否则进程内缓存不刷新）
-0 4 * * 0 cd /opt/rhythm-vault && docker compose -f docker-compose.prod.yml --env-file .env run --rm sync-songs && docker compose -f docker-compose.prod.yml --env-file .env restart worker
 ```
 
 手动备份：`./scripts/backup.sh`（产物在 `backups/rhythm_vault_YYYYMMDD.dump`）。恢复：

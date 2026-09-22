@@ -18,7 +18,7 @@ import {
 } from '@rhythm-vault/core';
 import { AuthError } from './auth';
 import { scoresEmptyMessage } from '$lib/copy';
-import { chartMetaMap, getLibrary, numericSongId, scoreChartKey } from './library';
+import { chartMetaMap, getLibrary, numericSongId, scoreChartKey, type GameKey } from './library';
 import { pickMaimaiB50FromRows, type MaimaiB50Picked, type ScorePickRow } from './score-pick';
 
 export type ScoreChannel = 'divingfish' | 'lxns';
@@ -152,6 +152,32 @@ async function latestUpdatedIso(userId: number, game: string, source?: string): 
 	return row?.at ? new Date(row.at).toISOString() : null;
 }
 
+/** 该渠道上次成功同步的时间。还没有 last_sync_at 时，回落到成绩行的更新时间。 */
+export async function lastSuccessfulSyncAt(
+	userId: number,
+	game: string,
+	source: string
+): Promise<string | null> {
+	const [row] = await getDb()
+		.select({ lastSyncAt: linkedAccounts.lastSyncAt })
+		.from(linkedAccounts)
+		.where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.source, source)))
+		.limit(1);
+	const stamp = row?.lastSyncAt?.[game];
+	if (typeof stamp === 'string' && stamp) return stamp;
+	return latestUpdatedIso(userId, game, source);
+}
+
+function chartDisplay(game: GameKey, chartKey: string) {
+	const meta = chartMetaMap(game).get(chartKey);
+	return {
+		title: meta?.title ?? '',
+		label: meta?.label ?? '',
+		value: meta?.value ?? 0,
+		cover: meta?.cover ?? ''
+	};
+}
+
 /** 走 scores_user_game_rating_idx：按 isNew 分区取 rating 最高的 n 行 */
 async function topRated(
 	userId: number,
@@ -190,17 +216,18 @@ export type MaimaiB50Result = MaimaiB50Picked;
 export async function maimaiB50(userId: number, source: ScoreChannel = 'divingfish'): Promise<MaimaiB50Result> {
 	const srcEq = eq(scores.source, source);
 	if (!(await hasGameScores(userId, 'maimai_dx', srcEq))) {
-		throw new AuthError(404, await emptyHint(userId, source));
+		throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	}
 	const [oldBest, newBest, syncedAt] = await Promise.all([
 		topRated(userId, 'maimai_dx', false, 35, srcEq),
 		topRated(userId, 'maimai_dx', true, 15, srcEq),
-		latestUpdatedIso(userId, 'maimai_dx', source)
+		lastSuccessfulSyncAt(userId, 'maimai_dx', source)
 	]);
 	const toEntry = (r: (typeof oldBest)[number]) => {
 		const badges = (r.badges ?? {}) as { fc?: unknown; fs?: unknown };
 		return {
 			chartKey: r.chartKey,
+			...chartDisplay('maimai', r.chartKey),
 			score: r.score,
 			rating: r.rating,
 			...(typeof badges.fc === 'string' && badges.fc ? { fc: badges.fc } : {}),
@@ -217,9 +244,13 @@ export async function maimaiB50(userId: number, source: ScoreChannel = 'divingfi
 
 export interface MaimaiSongResult {
 	chartKey: string;
+	title: string;
+	label: string;
+	value: number;
+	cover: string;
 	score: number | null;
 	rating: number | null;
-	syncedAt: string;
+	syncedAt: string | null;
 }
 
 export async function maimaiSong(
@@ -227,7 +258,9 @@ export async function maimaiSong(
 	chartId: string,
 	source: ScoreChannel = 'divingfish'
 ): Promise<MaimaiSongResult> {
-	if (!/^\d+:\d+$/.test(chartId)) throw new AuthError(400, 'chart 参数格式应为 曲目ID:难度序号，如 1145:3');
+	if (!/^\d+:\d+$/.test(chartId)) {
+		throw new AuthError(400, 'chart 参数格式应为 曲目ID:难度序号，如 1145:3', 'bad_request');
+	}
 	const [row] = await getDb()
 		.select({
 			chartKey: scores.chartKey,
@@ -245,8 +278,14 @@ export async function maimaiSong(
 			)
 		)
 		.limit(1);
-	if (!row) throw new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）');
-	return { chartKey: row.chartKey, score: row.score, rating: row.rating, syncedAt: row.updatedAt.toISOString() };
+	if (!row) throw new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）', 'not_found');
+	return {
+		chartKey: row.chartKey,
+		...chartDisplay('maimai', row.chartKey),
+		score: row.score,
+		rating: row.rating,
+		syncedAt: await lastSuccessfulSyncAt(userId, 'maimai_dx', source)
+	};
 }
 
 // ---------- chunithm ----------
@@ -277,12 +316,12 @@ const CHUNI_NOT_WE = not(like(scores.chartKey, '%:5'));
 export async function chunithmB30(userId: number, source: ScoreChannel = 'divingfish'): Promise<ChuniB30Result> {
 	const srcEq = eq(scores.source, source);
 	if (!(await hasGameScores(userId, 'chunithm', srcEq))) {
-		throw new AuthError(404, await emptyHint(userId, source));
+		throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	}
 	const [oldRows, newRows, syncedAt] = await Promise.all([
 		topRated(userId, 'chunithm', false, 30, and(CHUNI_NOT_WE, srcEq)),
 		topRated(userId, 'chunithm', true, 20, and(CHUNI_NOT_WE, srcEq)),
-		latestUpdatedIso(userId, 'chunithm', source)
+		lastSuccessfulSyncAt(userId, 'chunithm', source)
 	]);
 	const meta = chartMetaMap('chunithm');
 	const engineInput: ChuniScore[] = [];
@@ -298,7 +337,7 @@ export async function chunithmB30(userId: number, source: ScoreChannel = 'diving
 		const badges = (r.badges ?? {}) as { fc?: unknown };
 		if (typeof badges.fc === 'string' && badges.fc) badgeByKey.set(r.chartKey, { fc: badges.fc });
 	}
-	if (engineInput.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	if (engineInput.length === 0) throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	const res = computeChuniRating(engineInput);
 	const decorate = (e: ChuniBestEntry): ChuniBestEntryView => {
 		const m = meta.get(e.chartId);
@@ -325,9 +364,13 @@ export async function chunithmB30(userId: number, source: ScoreChannel = 'diving
 
 export interface ChuniSongResult {
 	chartKey: string;
+	title: string;
+	label: string;
+	value: number;
+	cover: string;
 	score: number | null;
 	rating: number | null;
-	syncedAt: string;
+	syncedAt: string | null;
 }
 
 export async function chunithmSong(
@@ -335,7 +378,7 @@ export async function chunithmSong(
 	chartId: string,
 	source: ScoreChannel = 'divingfish'
 ): Promise<ChuniSongResult> {
-	if (!/^\d+:\d+$/.test(chartId)) throw new AuthError(400, 'chart 参数格式应为 曲目ID:难度序号');
+	if (!/^\d+:\d+$/.test(chartId)) throw new AuthError(400, 'chart 参数格式应为 曲目ID:难度序号', 'bad_request');
 	const [row] = await getDb()
 		.select({
 			chartKey: scores.chartKey,
@@ -353,11 +396,17 @@ export async function chunithmSong(
 			)
 		)
 		.limit(1);
-	if (!row) throw new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）');
+	if (!row) throw new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）', 'not_found');
 	const meta = chartMetaMap('chunithm').get(row.chartKey);
 	const rating =
 		row.score !== null && meta ? chuniRatingOf(meta.value, row.score) : row.rating;
-	return { chartKey: row.chartKey, score: row.score, rating, syncedAt: row.updatedAt.toISOString() };
+	return {
+		chartKey: row.chartKey,
+		...chartDisplay('chunithm', row.chartKey),
+		score: row.score,
+		rating,
+		syncedAt: await lastSuccessfulSyncAt(userId, 'chunithm', source)
+	};
 }
 
 // ---------- djmax ----------
@@ -414,17 +463,17 @@ function toDjmaxRec(r: {
 }
 
 export async function djmaxB100(userId: number, button: number): Promise<DjmaxB100Result> {
-	if (![4, 5, 6, 8].includes(button)) throw new AuthError(400, '键位必须是 4/5/6/8');
+	if (![4, 5, 6, 8].includes(button)) throw new AuthError(400, '键位必须是 4/5/6/8', 'bad_request');
 	const prefix = like(scores.chartKey, `djmax:${button}B:%`);
 	if (!(await hasGameScores(userId, 'djmax', prefix))) {
-		throw new AuthError(404, await emptyHint(userId));
+		throw new AuthError(404, await emptyHint(userId), 'not_synced');
 	}
 	const eligible = and(prefix, gte(scores.score, MIN_SCORE));
 	// 多取一些再按 chartKey 去重，避免 manual / varchive 同谱面双计
 	const [basicRows, newRows, syncedAt, maxPower] = await Promise.all([
 		topRated(userId, 'djmax', false, 140, eligible),
 		topRated(userId, 'djmax', true, 60, eligible),
-		latestUpdatedIso(userId, 'djmax'),
+		lastSuccessfulSyncAt(userId, 'djmax', 'varchive'),
 		maxDjPower(button)
 	]);
 	const pickBest = (rows: typeof basicRows) => {
@@ -446,6 +495,7 @@ export async function djmaxB100(userId: number, button: number): Promise<DjmaxB1
 	);
 	const toEntry = (r: DjmaxRecord) => ({
 		chartKey: r.chartId,
+		...chartDisplay('djmax', r.chartId),
 		score: r.score,
 		rating: r.djpower,
 		...(r.maxCombo ? { maxCombo: true } : {})
@@ -461,11 +511,15 @@ export async function djmaxB100(userId: number, button: number): Promise<DjmaxB1
 
 export interface DjmaxSongResult {
 	chartKey: string;
+	title: string;
+	label: string;
+	value: number;
+	cover: string;
 	score: number | null;
 	rating: number | null;
 	djpower: number | null;
 	maxCombo: boolean;
-	syncedAt: string;
+	syncedAt: string | null;
 }
 
 const DJMAX_PATTERNS = ['NM', 'HD', 'MX', 'SC'] as const;
@@ -476,10 +530,10 @@ export async function djmaxSong(
 	pattern: string,
 	button: number
 ): Promise<DjmaxSongResult> {
-	if (![4, 5, 6, 8].includes(button)) throw new AuthError(400, '键位必须是 4/5/6/8');
+	if (![4, 5, 6, 8].includes(button)) throw new AuthError(400, '键位必须是 4/5/6/8', 'bad_request');
 	const pat = pattern.toUpperCase();
 	if (!(DJMAX_PATTERNS as readonly string[]).includes(pat)) {
-		throw new AuthError(400, '难度必须是 NM/HD/MX/SC');
+		throw new AuthError(400, '难度必须是 NM/HD/MX/SC', 'bad_request');
 	}
 	const [row] = await getDb()
 		.select({
@@ -498,15 +552,16 @@ export async function djmaxSong(
 			)
 		)
 		.limit(1);
-	if (!row) throw new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）');
+	if (!row) throw new AuthError(404, '未找到该谱面成绩（可能未游玩，或数据尚未同步）', 'not_found');
 	const badges = (row.badges ?? {}) as { maxCombo?: boolean };
 	return {
 		chartKey: row.chartKey,
+		...chartDisplay('djmax', row.chartKey),
 		score: row.score,
 		rating: row.rating,
 		djpower: row.rating,
 		maxCombo: badges.maxCombo === true,
-		syncedAt: row.updatedAt.toISOString()
+		syncedAt: await lastSuccessfulSyncAt(userId, 'djmax', 'varchive')
 	};
 }
 
@@ -530,10 +585,10 @@ export interface MaimaiPushResult {
 
 export async function maimaiPush(userId: number, source: ScoreChannel = 'divingfish'): Promise<MaimaiPushResult> {
 	const rows = await gameRows(userId, 'maimai_dx', source);
-	if (rows.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	if (rows.length === 0) throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	const b50 = pickMaimaiB50FromRows(rows);
 	const entries = [...b50.oldBest, ...b50.newBest];
-	if (entries.length === 0) throw new AuthError(404, await emptyHint(userId, source));
+	if (entries.length === 0) throw new AuthError(404, await emptyHint(userId, source), 'not_synced');
 	const b50Min = Math.min(...entries.map((e) => e.rating ?? 0));
 
 	const scoreByKey = new Map(rows.map((r) => [r.chartKey, r.score]));

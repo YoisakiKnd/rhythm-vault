@@ -92,18 +92,26 @@
 				{
 					method: 'POST',
 					path: '/api/v1/identities/verify',
-					desc: '提交 QQ 验证码。body: qq + code'
+					desc: '提交 QQ 验证码。body: qq + code。验证码只在网站上生成。'
+				},
+				{
+					method: 'GET',
+					path: '/api/v1/library/{game}/search?q=曲名&limit=5',
+					desc: '按曲名包含搜索，最多 10 条。用返回的 id 再查 /song?id=&qq='
 				}
 			]
 		}
 	];
 
 	const errors = [
-		{ code: '401', text: 'Key 缺失、无效或已吊销' },
-		{ code: '400', text: '未绑定对应查分器，或参数不对' },
-		{ code: '403', text: '这把 Key 不能查别人，或对方未开放查询' },
-		{ code: '404', text: '没有这份成绩，或 ?qq= 对应的人不存在 / 未开放' },
-		{ code: '502', text: '查分器暂时不可用，稍后重试' }
+		{ code: '401 unauthorized', text: 'Key 缺失、无效或已吊销' },
+		{ code: '400 bad_request', text: '参数不对' },
+		{ code: '403 forbidden', text: '这把 Key 不能查别人' },
+		{ code: '404 qq_unavailable', text: 'QQ 未登记、未验证，或对方没打开「允许 Bot 查询」' },
+		{ code: '404 not_synced', text: '人找到了，但这份成绩还没有' },
+		{ code: '404 not_found', text: '没有这首歌或这张谱的成绩' },
+		{ code: '429 rate_limited', text: '请求过于频繁' },
+		{ code: '502 upstream', text: '查分器暂时不可用，稍后重试' }
 	];
 
 	let copied = $state('');
@@ -120,7 +128,9 @@
 		}
 	}
 
-	const curlB50 = $derived(`curl -H "Authorization: Bearer rv_xxxx" \\\n  ${origin}/api/v1/maimai/b50`);
+	const curlB50 = $derived(
+		`curl -H "Authorization: Bearer rv_xxxx" \\\n  "${origin}/api/v1/maimai/b50?qq=10000"`
+	);
 	const curlDjmax = $derived(
 		`curl -H "Authorization: Bearer rv_xxxx" \\\n  "${origin}/api/v1/djmax/b100?button=8"`
 	);
@@ -156,9 +166,9 @@
 	<section id="api" class="mt-8 scroll-mt-16">
 		<h2 class="font-semibold">开放 API</h2>
 		<p class="mt-1 text-sm text-base-content/55">
-			成绩来自你绑定并同步的查分器。默认查 Key 主人自己。响应里的
+			成绩来自你绑定并同步的查分器。不带 <code class="text-xs">?qq=</code> 时查 Key 主人自己。查别人只能用已验证的 QQ，不能用网站用户名。响应里的
 			<code class="text-xs">syncedAt</code>
-			是最近一次同步时间。
+			是该渠道上次成功同步的时间。个人 Key 每分钟 120 次，Bot Key 每分钟 600 次；群机器人应按 qq、游戏和渠道把结果缓存几分钟。
 		</p>
 
 		<div class="rv-panel mt-4 p-4 sm:p-5">
@@ -170,7 +180,13 @@
 			</p>
 			<pre class="mt-3 overflow-x-auto rounded-lg bg-base-200 px-3 py-2.5 text-xs"><code>Authorization: Bearer rv_xxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
 			<p class="mt-3 text-sm text-base-content/60">
-				要给群 Bot 用 <code class="text-xs">?qq=</code> 查别人：同一页提交申请，站长通过后创建 Bot Key。被查的人须已验证该 QQ，并在设置里打开「允许 Bot 查询」。查不到、未开放、未验证都返回 404。
+				群 Bot 查别人：用户先在
+				<a class="link" href="/dashboard/identities">查询账号</a>
+				登记 QQ，把网站上的 6 位验证码发给 Bot（<code class="text-xs">POST /api/v1/identities/verify</code>），再在
+				<a class="link" href="/dashboard/settings">设置</a>
+				打开「允许 Bot 查询」，并完成一次成绩同步。Bot 只能用这个 QQ 查询，例如
+				<code class="text-xs">?qq=10000</code>。未验证、没开开关、QQ 对不上，都是
+				<code class="text-xs">qq_unavailable</code>。要给 Bot 签发 Key，在开发者页提交申请，站长通过后创建 Bot Key。
 			</p>
 		</div>
 
@@ -209,8 +225,49 @@
 		</div>
 
 		<div class="rv-panel mt-3 p-4 sm:p-5">
+			<h3 class="font-medium">B50 响应</h3>
+			<pre class="mt-3 overflow-x-auto rounded-lg bg-base-200 px-3 py-2.5 text-xs"><code>{`{
+  "rating": 12345,
+  "player": { "username": "Test" },
+  "qq": "10000",
+  "game": "maimai",
+  "src": "divingfish",
+  "syncedAt": "2026-09-22T00:00:00.000Z",
+  "oldBest": [
+    {
+      "chartKey": "maimaidx:1145:3",
+      "title": "曲名",
+      "label": "13+",
+      "value": 13.7,
+      "cover": "/cover/maimai/1145",
+      "score": 100.5,
+      "rating": 280
+    }
+  ],
+  "newBest": []
+}`}</code></pre>
+		</div>
+
+		<div class="rv-panel mt-3 p-4 sm:p-5">
+			<h3 class="font-medium">曲名搜索响应</h3>
+			<pre class="mt-3 overflow-x-auto rounded-lg bg-base-200 px-3 py-2.5 text-xs"><code>{`{
+  "results": [
+    {
+      "id": "1145",
+      "title": "曲名",
+      "artist": "艺术家",
+      "cover": "/cover/maimai/1145",
+      "charts": [
+        { "chartKey": "maimaidx:1145:3", "diff": "MASTER", "level": "13+", "ds": 13.7 }
+      ]
+    }
+  ]
+}`}</code></pre>
+		</div>
+
+		<div class="rv-panel mt-3 p-4 sm:p-5">
 			<h3 class="font-medium">错误</h3>
-			<p class="mt-1 text-sm text-base-content/55">一律 <code class="text-xs">{'{ "error": "说明" }'}</code></p>
+			<p class="mt-1 text-sm text-base-content/55">一律 <code class="text-xs">{'{ "error": "说明", "code": "机器可读错误码" }'}</code></p>
 			<ul class="mt-3 space-y-1.5 text-sm">
 				{#each errors as e (e.code)}
 					<li>

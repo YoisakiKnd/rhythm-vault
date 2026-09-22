@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { getDb, linkedAccounts, ratingSnapshots, scores, and, desc, eq, inArray, sql } from '@rhythm-vault/db';
 import {
@@ -64,6 +64,7 @@ interface LibCache {
 	dsByChart: Map<string, number>;
 	/** 曲名（maimai 为 曲名\\t类型）→ 候选数字 ID；多候选视为歧义不采用 */
 	idsByTitle: Map<string, string[]>;
+	mtimeMs: number;
 }
 
 const libraryCache = new Map<string, LibCache>();
@@ -76,60 +77,59 @@ function maimaiTypeFromNumericId(numericId: string): string {
 }
 
 function loadLibrary(game: string): LibCache {
-	let cached = libraryCache.get(game);
-	if (cached) return cached;
-	cached = { isNewBySong: new Map(), dsByChart: new Map(), idsByTitle: new Map() };
 	const file = LIB_FILES[game];
-	if (file) {
-		const envDir = process.env.RV_DATA_DIR;
-		const path = envDir ? join(envDir, file) : new URL(`../../data/${file}`, import.meta.url);
-		if (existsSync(path)) {
-			try {
-				const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
-					songs: Array<{ id: string; title?: string; isNew: boolean }>;
-					charts: Array<{ songId: string; difficultyKey: string; levelValue: number }>;
-				};
-				for (const song of parsed.songs) {
-					cached.isNewBySong.set(song.id, song.isNew);
-					const numeric = song.id.split(':')[1] ?? '';
-					if (!numeric || !song.title) continue;
-					if (game === 'maimai_dx') {
-						const key = `${song.title}\t${maimaiTypeFromNumericId(numeric)}`;
-						const list = cached.idsByTitle.get(key) ?? [];
-						if (!list.includes(numeric)) list.push(numeric);
-						cached.idsByTitle.set(key, list);
-					} else {
-						const list = cached.idsByTitle.get(song.title) ?? [];
-						if (!list.includes(numeric)) list.push(numeric);
-						cached.idsByTitle.set(song.title, list);
-					}
+	const envDir = process.env.RV_DATA_DIR;
+	const path = file ? (envDir ? join(envDir, file) : new URL(`../../data/${file}`, import.meta.url)) : null;
+	const mtimeMs = path && existsSync(path) ? statSync(path).mtimeMs : 0;
+	const cached = libraryCache.get(game);
+	if (cached && cached.mtimeMs === mtimeMs) return cached;
+	const next: LibCache = { isNewBySong: new Map(), dsByChart: new Map(), idsByTitle: new Map(), mtimeMs };
+	if (file && path && existsSync(path)) {
+		try {
+			const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+				songs: Array<{ id: string; title?: string; isNew: boolean }>;
+				charts: Array<{ songId: string; difficultyKey: string; levelValue: number }>;
+			};
+			for (const song of parsed.songs) {
+				next.isNewBySong.set(song.id, song.isNew);
+				const numeric = song.id.split(':')[1] ?? '';
+				if (!numeric || !song.title) continue;
+				if (game === 'maimai_dx') {
+					const key = `${song.title}\t${maimaiTypeFromNumericId(numeric)}`;
+					const list = next.idsByTitle.get(key) ?? [];
+					if (!list.includes(numeric)) list.push(numeric);
+					next.idsByTitle.set(key, list);
+				} else {
+					const list = next.idsByTitle.get(song.title) ?? [];
+					if (!list.includes(numeric)) list.push(numeric);
+					next.idsByTitle.set(song.title, list);
 				}
-				let lastSongId = '';
-				let idx = 0;
-				for (const c of parsed.charts ?? []) {
-					if (c.songId !== lastSongId) {
-						lastSongId = c.songId;
-						idx = 0;
-					}
-					const numeric = c.songId.split(':')[1] ?? '';
-					const key =
-						game === 'djmax'
-							? scoreChartKey('djmax', numeric, c.difficultyKey, idx)
-							: game === 'chunithm'
-								? scoreChartKey('chunithm', numeric, c.difficultyKey, idx)
-								: `${c.songId}:${idx}`;
-					cached.dsByChart.set(key, c.levelValue);
-					idx++;
-				}
-			} catch (err) {
-				console.warn(`[sync] 曲库 ${file} 解析失败`, err);
 			}
-		} else {
-			console.warn(`[sync] 曲库 ${file} 不存在，isNew/定数按缺失处理（先运行 sync:songs）`);
+			let lastSongId = '';
+			let idx = 0;
+			for (const c of parsed.charts ?? []) {
+				if (c.songId !== lastSongId) {
+					lastSongId = c.songId;
+					idx = 0;
+				}
+				const numeric = c.songId.split(':')[1] ?? '';
+				const key =
+					game === 'djmax'
+						? scoreChartKey('djmax', numeric, c.difficultyKey, idx)
+						: game === 'chunithm'
+							? scoreChartKey('chunithm', numeric, c.difficultyKey, idx)
+							: `${c.songId}:${idx}`;
+				next.dsByChart.set(key, c.levelValue);
+				idx++;
+			}
+		} catch (err) {
+			console.warn(`[sync] 曲库 ${file} 解析失败`, err);
 		}
+	} else if (file) {
+		console.warn(`[sync] 曲库 ${file} 不存在，isNew/定数按缺失处理（先运行 sync:songs）`);
 	}
-	libraryCache.set(game, cached);
-	return cached;
+	libraryCache.set(game, next);
+	return next;
 }
 
 /** songId → 是否新曲，来源 packages/data 曲库 JSON（进程内缓存） */
@@ -174,6 +174,7 @@ export async function upsertScores(
 	const db = getDb();
 	let written = 0;
 	const better = sql`(excluded.rating is not null and (${scores.rating} is null or excluded.rating > ${scores.rating} or (excluded.rating = ${scores.rating} and coalesce(excluded.score, 0) > coalesce(${scores.score}, 0))))`;
+	const sameScore = sql`(excluded.rating is not distinct from ${scores.rating} and coalesce(excluded.score, 0) = coalesce(${scores.score}, 0))`;
 	for (let i = 0; i < rows.length; i += CHUNK) {
 		const chunk = rows.slice(i, i + CHUNK).map((r) => ({ userId, game, source, ...r }));
 		await db
@@ -184,7 +185,7 @@ export async function upsertScores(
 				set: {
 					score: sql`case when ${better} then excluded.score else ${scores.score} end`,
 					rating: sql`case when ${better} then excluded.rating else ${scores.rating} end`,
-					badges: sql`case when ${better} then excluded.badges else ${scores.badges} end`,
+					badges: sql`case when ${better} or ${sameScore} then excluded.badges else ${scores.badges} end`,
 					isNew: sql`excluded.is_new`,
 					updatedAt: sql`case when ${better} then now() else ${scores.updatedAt} end`
 				}
@@ -208,6 +209,18 @@ export function mergeSyncStats(prev: unknown, game: string, count: number): Reco
 	return { ...base, [game]: Math.max(prior, count) };
 }
 
+function mergeLastSyncAt(prev: unknown, game: string, at: string): Record<string, string> {
+	const base =
+		prev && typeof prev === 'object' && !Array.isArray(prev)
+			? Object.fromEntries(
+					Object.entries(prev as Record<string, unknown>).filter(
+						(e): e is [string, string] => typeof e[1] === 'string' && e[1].length > 0
+					)
+				)
+			: {};
+	return { ...base, [game]: at };
+}
+
 export async function recordSourceSync(
 	userId: number,
 	source: 'divingfish' | 'lxns' | 'varchive' | 'manual',
@@ -216,7 +229,7 @@ export async function recordSourceSync(
 ): Promise<void> {
 	const db = getDb();
 	const [row] = await db
-		.select({ syncStats: linkedAccounts.syncStats })
+		.select({ syncStats: linkedAccounts.syncStats, lastSyncAt: linkedAccounts.lastSyncAt })
 		.from(linkedAccounts)
 		.where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.source, source)))
 		.limit(1);
@@ -225,6 +238,7 @@ export async function recordSourceSync(
 		.update(linkedAccounts)
 		.set({
 			syncStats: mergeSyncStats(row.syncStats, game, count),
+			lastSyncAt: mergeLastSyncAt(row.lastSyncAt, game, new Date().toISOString()),
 			updatedAt: new Date()
 		})
 		.where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.source, source)));
@@ -257,9 +271,61 @@ async function upsertFromSource(
 	return n;
 }
 
-/** 同步完成后写一条 rating 历史快照 */
+/** 同步完成后写一条 rating 历史快照。分数没变（DJMAX 还要同一键位）时跳过。 */
 async function writeRatingSnapshot(userId: number, game: string, rating: number, detail: unknown) {
-	await getDb().insert(ratingSnapshots).values({ userId, game, rating, detail });
+	const db = getDb();
+	if (game === 'djmax') {
+		const button = (detail as { button?: number } | null)?.button;
+		const [prev] = await db
+			.select({ rating: ratingSnapshots.rating })
+			.from(ratingSnapshots)
+			.where(
+				and(
+					eq(ratingSnapshots.userId, userId),
+					eq(ratingSnapshots.game, 'djmax'),
+					sql`${ratingSnapshots.detail}->>'button' = ${String(button ?? '')}`
+				)
+			)
+			.orderBy(desc(ratingSnapshots.createdAt))
+			.limit(1);
+		if (prev && Math.abs(prev.rating - rating) < 1e-6) return;
+	} else {
+		const [prev] = await db
+			.select({ rating: ratingSnapshots.rating })
+			.from(ratingSnapshots)
+			.where(and(eq(ratingSnapshots.userId, userId), eq(ratingSnapshots.game, game)))
+			.orderBy(desc(ratingSnapshots.createdAt))
+			.limit(1);
+		if (prev && Math.abs(prev.rating - rating) < 1e-6) return;
+	}
+	await db.insert(ratingSnapshots).values({ userId, game, rating, detail });
+}
+
+export const SYNC_SOURCE_GAMES = {
+	divingfish: ['maimai_dx', 'chunithm'],
+	lxns: ['maimai_dx', 'chunithm'],
+	varchive: ['djmax']
+} as const;
+
+/** 绑定来源覆盖的游戏里，有任一款超过 staleMs 没成功同步过，就该再同步。 */
+export function bindingNeedsSync(
+	source: string,
+	lastSyncAt: unknown,
+	now = Date.now(),
+	staleMs = 6 * 3600_000
+): boolean {
+	const games = SYNC_SOURCE_GAMES[source as keyof typeof SYNC_SOURCE_GAMES];
+	if (!games) return false;
+	const stamps =
+		lastSyncAt && typeof lastSyncAt === 'object' && !Array.isArray(lastSyncAt)
+			? (lastSyncAt as Record<string, unknown>)
+			: {};
+	return games.some((game) => {
+		const at = stamps[game];
+		if (typeof at !== 'string') return true;
+		const t = Date.parse(at);
+		return !Number.isFinite(t) || now - t > staleMs;
+	});
 }
 
 // ---------- 上游载荷 → ScoreRow ----------
@@ -446,6 +512,7 @@ export async function syncUserPublic(
 				await sleep(500);
 			}
 			touchedDjmax = true;
+			await recordSourceSync(userId, 'varchive', 'djmax', count);
 			summary.djmax = { ok: true, detail: `四个键位共 ${count} 条成绩` };
 		} catch (err) {
 			summary.djmax = { ok: false, detail: failSyncDetail(err) };

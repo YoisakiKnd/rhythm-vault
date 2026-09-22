@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const identity = await authApiKey(request);
 		if (identity.scope !== 'bot') {
-			throw new AuthError(403, '该 Key 无跨账号查询权限');
+			throw new AuthError(403, '该 Key 无跨账号查询权限', 'forbidden');
 		}
 		const body = (await request.json()) as { qq?: unknown; code?: unknown };
 		const qq = typeof body.qq === 'string' ? normalizeQq(body.qq) : null;

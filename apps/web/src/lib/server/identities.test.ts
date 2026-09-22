@@ -85,9 +85,21 @@ describe('decideQueryTarget', () => {
 		expect(decideQueryTarget(bot, other, { allowUnverified: false })).toBe(2);
 	});
 
+	function codeOf(fn: () => unknown): string {
+		try {
+			fn();
+			return '';
+		} catch (err) {
+			return err instanceof AuthError ? err.code : '';
+		}
+	}
+
 	test('bot Key 对未开放 / 未验证 / 不存在统一 404', () => {
 		expect(messageOf(() => decideQueryTarget(bot, otherClosed, { allowUnverified: false }))).toBe(
 			QUERY_TARGET_HIDDEN
+		);
+		expect(codeOf(() => decideQueryTarget(bot, otherClosed, { allowUnverified: false }))).toBe(
+			'qq_unavailable'
 		);
 		expect(messageOf(() => decideQueryTarget(bot, otherUnverified, { allowUnverified: false }))).toBe(
 			QUERY_TARGET_HIDDEN
@@ -95,5 +107,6 @@ describe('decideQueryTarget', () => {
 		expect(messageOf(() => decideQueryTarget(bot, null, { allowUnverified: false }))).toBe(
 			QUERY_TARGET_HIDDEN
 		);
+		expect(codeOf(() => decideQueryTarget(self, other, { allowUnverified: false }))).toBe('forbidden');
 	});
 });

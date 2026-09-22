@@ -97,7 +97,7 @@ async function requireHasScores(userId: number, game: string, source?: string): 
 			.limit(1);
 		const bound = Boolean(link?.externalId || link?.token);
 		const src = linkSource === 'varchive' ? 'varchive' : source === 'lxns' ? 'lxns' : 'df';
-		throw new AuthError(404, scoresEmptyMessage({ bound, src }));
+		throw new AuthError(404, scoresEmptyMessage({ bound, src }), 'not_synced');
 	}
 }
 

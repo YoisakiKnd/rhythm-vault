@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
 	divingFishMusicData,
@@ -179,7 +179,7 @@ function writeCatalogSources(parts: Record<string, { dfOnly: string[]; lxnsOnly:
 	writeFileSync(target, JSON.stringify({ ...prev, ...parts }, null, '\t') + '\n');
 }
 
-async function main(): Promise<void> {
+export async function syncCatalog(): Promise<void> {
 	console.log('[sync-songs] 开始曲库同步');
 	await syncDivingFish('maimai', 'maimaidx');
 	const maimaiBase = readLibrary('maimaidx');
@@ -201,4 +201,8 @@ async function main(): Promise<void> {
 	console.log('[sync-songs] 完成');
 }
 
-await main();
+const invokedDirectly =
+	process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (invokedDirectly) {
+	await syncCatalog();
+}

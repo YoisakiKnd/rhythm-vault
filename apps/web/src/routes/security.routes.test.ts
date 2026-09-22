@@ -117,8 +117,10 @@ describe('隐私与查分 API', () => {
 		expect(djmaxSongSrc).toContain('assertNumericId');
 		expect(djmaxSongSrc).toContain("searchParams.get('id')");
 	});
-	test('API Key 限流按 userId，Key 有数量上限', () => {
-		expect(authSrc).toContain('takeToken(`api:${row.userId}`');
+	test('API Key 限流按 userId，个人 Key 与 Bot Key 分桶，Key 有数量上限', () => {
+		expect(authSrc).toContain('`api:${row.userId}`');
+		expect(authSrc).toContain('`api:bot:${row.userId}`');
+		expect(authSrc).toContain('BOT_RATE_PER_MIN');
 		expect(authSrc).toContain('MAX_API_KEYS_PER_USER');
 		expect(authSrc).toContain('destroyAllSessions');
 		expect(cryptoSrc).toContain('scrypt:v1:');

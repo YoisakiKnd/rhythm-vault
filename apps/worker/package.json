@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"start": "bun src/index.ts",
-		"sync:songs": "bun src/sync-songs.ts"
+		"sync:songs": "bun src/sync-songs.ts",
+		"catalog": "bun src/catalog-loop.ts"
 	},
 	"dependencies": {
 		"@rhythm-vault/adapters": "workspace:*",

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { chuniRows, libraryIsNew, maimaiRows, mergeSyncStats, uniqueIdOrNull } from './index';
+import { chuniRows, libraryIsNew, maimaiRows, mergeSyncStats, bindingNeedsSync, uniqueIdOrNull } from './index';
 import { unpackDivingFishQueryPlayer } from '@rhythm-vault/adapters';
 
 describe('chuniRows', () => {
@@ -84,5 +84,33 @@ describe('mergeSyncStats', () => {
 		});
 		expect(mergeSyncStats({ maimai_dx: 50 }, 'maimai_dx', 0)).toEqual({ maimai_dx: 50 });
 		expect(mergeSyncStats({}, 'chunithm', 0)).toEqual({ chunithm: 0 });
+	});
+});
+
+describe('bindingNeedsSync', () => {
+	const now = Date.parse('2026-09-22T12:00:00.000Z');
+	const staleMs = 6 * 3600_000;
+
+	test('没绑过的来源不触发同步', () => {
+		expect(bindingNeedsSync('manual', {}, now, staleMs)).toBe(false);
+	});
+
+	test('只看该来源覆盖的游戏，缺时间戳视为过期', () => {
+		expect(bindingNeedsSync('varchive', {}, now, staleMs)).toBe(true);
+		expect(bindingNeedsSync('varchive', { djmax: '2026-09-22T11:00:00.000Z' }, now, staleMs)).toBe(
+			false
+		);
+		expect(bindingNeedsSync('divingfish', { maimai_dx: '2026-09-22T11:00:00.000Z' }, now, staleMs)).toBe(
+			true
+		);
+	});
+
+	test('超过 6 小时才算过期', () => {
+		expect(bindingNeedsSync('varchive', { djmax: '2026-09-22T06:00:00.000Z' }, now, staleMs)).toBe(
+			false
+		);
+		expect(bindingNeedsSync('varchive', { djmax: '2026-09-22T05:59:59.000Z' }, now, staleMs)).toBe(
+			true
+		);
 	});
 });

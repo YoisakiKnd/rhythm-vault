@@ -10,7 +10,11 @@ export const GET: RequestHandler = async ({ request }) => {
 		return json({
 			username: identity.username,
 			scope: identity.scope,
-			// 供 Bot 端判断可查询范围
+			canQueryByQq: identity.scope === 'bot',
+			query:
+				identity.scope === 'bot'
+					? '查别人只能带 ?qq=。该 QQ 须已在网站验证，并且打开了「允许 Bot 查询」。不能用网站用户名查人。'
+					: '这把 Key 只能查自己。查别人需要 Bot Key，并带已验证且允许 Bot 查询的 ?qq=。',
 			endpoints: [
 				'/api/v1/maimai/b50',
 				'/api/v1/maimai/song?id=',
@@ -28,6 +32,7 @@ export const GET: RequestHandler = async ({ request }) => {
 				'/api/v1/maimai/sheet',
 				'/api/v1/chunithm/sheet',
 				'/api/v1/djmax/sheet',
+				'/api/v1/library/{game}/search?q=',
 				'POST /api/v1/identities/verify'
 			]
 		});

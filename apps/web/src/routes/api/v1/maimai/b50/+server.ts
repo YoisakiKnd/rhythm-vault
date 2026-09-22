@@ -1,7 +1,6 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { authApiKey } from '$lib/server/auth';
-import { errorResponse, resolveQueryTarget } from '$lib/server/api';
+import { errorResponse, resolveQueryTarget, scoreJson } from '$lib/server/api';
 import { maimaiB50 } from '$lib/server/scores';
 import { scoreChannelFromParam } from '$lib/server/channel';
 
@@ -9,8 +8,9 @@ import { scoreChannelFromParam } from '$lib/server/channel';
 export const GET: RequestHandler = async ({ request, url }) => {
 	try {
 		const identity = await authApiKey(request);
-		const target = await resolveQueryTarget(identity, url);
-		return json(await maimaiB50(target, scoreChannelFromParam(url.searchParams.get('src'))));
+		const query = await resolveQueryTarget(identity, url);
+		const src = scoreChannelFromParam(url.searchParams.get('src'));
+		return scoreJson(await maimaiB50(query.userId, src), query, { game: 'maimai', src });
 	} catch (err) {
 		return errorResponse(err);
 	}

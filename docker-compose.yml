@@ -47,6 +47,21 @@ services:
         condition: service_completed_successfully
     restart: 'no'
 
+  catalog:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgres://rv:${POSTGRES_PASSWORD:-rv}@db:5432/rhythm_vault
+      RV_DATA_DIR: /app/packages/data
+    volumes:
+      - library:/app/packages/data
+    command: ['bun', 'run', '--cwd', 'apps/worker', 'catalog']
+    depends_on:
+      sync-songs:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   web:
     build: .
     env_file: .env

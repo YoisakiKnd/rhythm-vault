@@ -190,6 +190,8 @@ export const linkedAccounts = pgTable(
 		externalVerified: boolean('external_verified').notNull().default(false),
 		/** 各游戏最近一次成功同步写入的条数，如 { maimai_dx: 50, chunithm: 0 } */
 		syncStats: jsonb('sync_stats').$type<Record<string, number>>().notNull().default({}),
+		/** 各游戏最近一次成功同步时间（ISO），如 { maimai_dx: "2026-09-22T00:00:00.000Z" } */
+		lastSyncAt: jsonb('last_sync_at').$type<Record<string, string>>().notNull().default({}),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},

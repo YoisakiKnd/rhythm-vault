@@ -333,6 +333,7 @@ export async function resolveIdentity(
 
 export interface QueryTargetRecord {
 	userId: number;
+	username?: string;
 	verified: boolean;
 	botQueryPublic: boolean;
 }
@@ -344,6 +345,7 @@ export async function resolveIdentityForQuery(
 	const [row] = await getDb()
 		.select({
 			userId: queryIdentities.userId,
+			username: users.username,
 			verified: queryIdentities.verified,
 			botQueryPublic: users.botQueryPublic
 		})

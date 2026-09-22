@@ -3,16 +3,37 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import {
 	chunithmJacketId,
+	clampSearchLimit,
 	getLibrary,
 	getSongCatalog,
 	libraryFilterOptions,
 	numericSongId,
 	queryLibrary,
-	scoreChartKey
+	scoreChartKey,
+	searchLibrary
 } from './library';
 
 /** 曲库 JSON 不进 git；CI 无 sync:songs 产物时跳过依赖曲库的用例 */
 const HAS_CATALOG = existsSync(join(import.meta.dir, '../../../../../packages/data/maimaidx.json'));
+
+describe('clampSearchLimit', () => {
+	test('默认 5，上限 10', () => {
+		expect(clampSearchLimit(Number.NaN)).toBe(5);
+		expect(clampSearchLimit(0)).toBe(1);
+		expect(clampSearchLimit(5)).toBe(5);
+		expect(clampSearchLimit(99)).toBe(10);
+	});
+});
+
+describe.skipIf(!HAS_CATALOG)('searchLibrary', () => {
+	test('曲名包含匹配，并带上 chartKey', () => {
+		const hits = searchLibrary('maimai', 'True Love Song', 5);
+		expect(hits.length).toBeGreaterThan(0);
+		expect(hits.every((hit) => hit.title.toLowerCase().includes('true love song'))).toBe(true);
+		expect(hits[0]?.charts.length).toBeGreaterThan(0);
+		expect(hits[0]?.charts[0]?.chartKey.startsWith('maimaidx:')).toBe(true);
+	});
+});
 
 describe.skipIf(!HAS_CATALOG)('queryLibrary', () => {
 	test('按曲名或数字 ID 搜索', () => {

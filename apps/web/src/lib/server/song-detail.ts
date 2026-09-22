@@ -1,5 +1,6 @@
 import { getDb, scores, and, eq, like } from '@rhythm-vault/db';
 import { AuthError } from './auth';
+import { lastSuccessfulSyncAt } from './scores';
 import {
 	DB_GAME,
 	SONG_PREFIX,
@@ -83,9 +84,8 @@ export async function getSongDetail(
 		belongsToSong(game, numericId, r.chartKey)
 	);
 	const byKey = new Map(rows.map((r) => [r.chartKey, r]));
-	const syncedAt =
-		rows.reduce<Date | null>((acc, r) => (acc === null || r.updatedAt > acc ? r.updatedAt : acc), null)?.toISOString() ??
-		null;
+	const syncSource = game === 'djmax' ? 'varchive' : (source ?? 'divingfish');
+	const syncedAt = await lastSuccessfulSyncAt(userId, DB_GAME[game], syncSource);
 
 	return {
 		...catalog,
@@ -172,6 +172,6 @@ export async function songDetailOrThrow(
 	source?: string
 ): Promise<SongDetailJson> {
 	const detail = await getSongDetail(game, numericId, userId, source);
-	if (!detail) throw new AuthError(404, '曲目不存在');
+	if (!detail) throw new AuthError(404, '曲目不存在', 'not_found');
 	return songDetailJson(detail);
 }

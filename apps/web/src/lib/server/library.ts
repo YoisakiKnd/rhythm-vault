@@ -474,6 +474,59 @@ export function scoreChartKey(game: GameKey, numericId: string, chart: LibraryCh
 	return coreScoreChartKey(game, numericId, chart.difficultyKey, idx);
 }
 
+export function clampSearchLimit(raw: number): number {
+	if (!Number.isFinite(raw)) return 5;
+	return Math.min(10, Math.max(1, Math.floor(raw)));
+}
+
+export interface LibrarySearchChart {
+	chartKey: string;
+	diff: string;
+	level: string;
+	ds: number;
+}
+
+export interface LibrarySearchHit {
+	id: string;
+	title: string;
+	artist: string;
+	cover: string;
+	charts: LibrarySearchChart[];
+}
+
+/** 曲名包含匹配。多条全部返回，调用方不要默认取第一条。 */
+export function searchLibrary(game: GameKey, q: string, limit = 5): LibrarySearchHit[] {
+	const query = q.trim().toLowerCase();
+	if (!query) return [];
+	const cap = clampSearchLimit(limit);
+	const lib = getLibrary(game);
+	const chartsBySong = new Map<string, Array<{ chart: LibraryChart; idx: number }>>();
+	iterateCharts(lib.charts, (chart, idx) => {
+		const list = chartsBySong.get(chart.songId) ?? [];
+		list.push({ chart, idx });
+		chartsBySong.set(chart.songId, list);
+	});
+	const hits: LibrarySearchHit[] = [];
+	for (const song of lib.songs) {
+		if (!song.title.toLowerCase().includes(query)) continue;
+		const numericId = numericSongId(song.id);
+		hits.push({
+			id: numericId,
+			title: song.title,
+			artist: song.artist ?? '',
+			cover: coverUrl(game, numericId),
+			charts: (chartsBySong.get(song.id) ?? []).map(({ chart, idx }) => ({
+				chartKey: scoreChartKey(game, numericId, chart, idx),
+				diff: game === 'djmax' ? chart.difficultyKey : effectiveDiffKey(game, song, chart),
+				level: chart.levelLabel,
+				ds: chart.levelValue
+			}))
+		});
+		if (hits.length >= cap) break;
+	}
+	return hits;
+}
+
 export interface SongChartView {
 	chartKey: string;
 	diffKey: string;
@@ -600,45 +653,43 @@ export interface ChartMeta {
 	version?: string;
 }
 
-const metaCache = new Map<GameKey, Map<string, ChartMeta>>();
+const metaCache = new Map<GameKey, { mtime: number; map: Map<string, ChartMeta> }>();
 
 /**
  * chartKey → 展示信息（曲名/等级/定数/曲绘）。key 构造与同步写入的 scores.chart_key 完全一致：
  * maimai/chuni 为 `${songId}:${难度序号}`，djmax 为 `djmax:${键位}B:${数字ID}:${难度}`。
  */
 export function chartMetaMap(game: GameKey): Map<string, ChartMeta> {
-	let meta = metaCache.get(game);
-	if (!meta) {
-		const next = new Map<string, ChartMeta>();
-		const lib = getLibrary(game);
-		const titles = new Map(lib.songs.map((s) => [s.id, s]));
-		const versionByCode = new Map((lib.versions ?? []).map((v) => [v.code, v.title]));
-		iterateCharts(lib.charts, (c, idx) => {
-			const numericId = numericSongId(c.songId);
-			const chartKey = scoreChartKey(game, numericId, c, idx);
-			const song = titles.get(c.songId);
-			const key = song ? effectiveDiffKey(game, song, c) : c.difficultyKey;
-			const fromCode =
-				song?.versionCode != null ? versionByCode.get(song.versionCode) : undefined;
-			const fromName =
-				song?.version && !/^\d{4}-\d{2}/.test(song.version) ? song.version : undefined;
-			const version = fromCode ?? fromName;
-			next.set(chartKey, {
-				title: song?.title ?? c.songId,
-				label: isDummyChart(c)
-					? c.levelLabel
-					: key === 'UTAGE' || key === 'WORLDS_END'
-						? `${diffLabel(key)} ${c.levelLabel}`
-						: c.levelLabel,
-				value: c.levelValue,
-				isNew: c.isNew,
-				cover: coverUrl(game, numericId),
-				...(c.floorName ? { floorName: c.floorName } : {}),
-				...(version ? { version } : {})
-			});
+	const path = join(findDataDir(), LIB_FILES[game]);
+	const mtime = existsSync(path) ? statSync(path).mtimeMs : 0;
+	const cached = metaCache.get(game);
+	if (cached && cached.mtime === mtime) return cached.map;
+	const next = new Map<string, ChartMeta>();
+	const lib = getLibrary(game);
+	const titles = new Map(lib.songs.map((s) => [s.id, s]));
+	const versionByCode = new Map((lib.versions ?? []).map((v) => [v.code, v.title]));
+	iterateCharts(lib.charts, (c, idx) => {
+		const numericId = numericSongId(c.songId);
+		const chartKey = scoreChartKey(game, numericId, c, idx);
+		const song = titles.get(c.songId);
+		const key = song ? effectiveDiffKey(game, song, c) : c.difficultyKey;
+		const fromCode = song?.versionCode != null ? versionByCode.get(song.versionCode) : undefined;
+		const fromName = song?.version && !/^\d{4}-\d{2}/.test(song.version) ? song.version : undefined;
+		const version = fromCode ?? fromName;
+		next.set(chartKey, {
+			title: song?.title ?? c.songId,
+			label: isDummyChart(c)
+				? c.levelLabel
+				: key === 'UTAGE' || key === 'WORLDS_END'
+					? `${diffLabel(key)} ${c.levelLabel}`
+					: c.levelLabel,
+			value: c.levelValue,
+			isNew: c.isNew,
+			cover: coverUrl(game, numericId),
+			...(c.floorName ? { floorName: c.floorName } : {}),
+			...(version ? { version } : {})
 		});
-		metaCache.set(game, next);
-		return next;
-	}
-	return meta;
+	});
+	metaCache.set(game, { mtime, map: next });
+	return next;
 }

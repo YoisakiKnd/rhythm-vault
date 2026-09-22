@@ -1,16 +1,19 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { authApiKey } from '$lib/server/auth';
-import { errorResponse, resolveQueryTarget } from '$lib/server/api';
+import { errorResponse, resolveQueryTarget, scoreJson } from '$lib/server/api';
+import { scoreChannelFromParam } from '$lib/server/channel';
 import { maimaiProgress } from '$lib/server/progress';
-import { parseCatalogSrc } from '$lib/catalog-nav';
 
 /** 完成度进度：GET /api/v1/maimai/progress（可加 ?qq= 按查询账号检索；?src=lxns 切落雪） */
 export const GET: RequestHandler = async ({ request, url }) => {
 	try {
 		const identity = await authApiKey(request);
-		const target = await resolveQueryTarget(identity, url);
-		return json(await maimaiProgress(target, parseCatalogSrc(url.searchParams.get('src'))));
+		const query = await resolveQueryTarget(identity, url);
+		const src = scoreChannelFromParam(url.searchParams.get('src'));
+		return scoreJson(await maimaiProgress(query.userId, src === 'lxns' ? 'lxns' : 'df'), query, {
+			game: 'maimai',
+			src
+		});
 	} catch (err) {
 		return errorResponse(err);
 	}

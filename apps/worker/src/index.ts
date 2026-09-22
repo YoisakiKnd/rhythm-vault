@@ -1,5 +1,5 @@
 import { getDb, linkedAccounts, isNotNull, or } from '@rhythm-vault/db';
-import { latestScoreAtByUserGame, syncUserFull } from '@rhythm-vault/sync';
+import { bindingNeedsSync, syncUserFull } from '@rhythm-vault/sync';
 import { purgeExpiredSessions } from '../../web/src/lib/server/auth';
 import { getAccessToken } from '../../web/src/lib/server/links';
 import { AuthError } from '../../web/src/lib/server/auth';
@@ -7,7 +7,6 @@ import { AuthError } from '../../web/src/lib/server/auth';
 const SCAN_INTERVAL_MS = 10 * 60_000;
 const STALE_MS = 6 * 3600_000;
 const BETWEEN_USERS_MS = 5_000;
-const GAMES = ['maimai_dx', 'chunithm', 'djmax'] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -25,21 +24,19 @@ async function tokenOrNull(userId: number, source: 'divingfish' | 'lxns'): Promi
 
 async function findDueUsers(): Promise<number[]> {
 	const rows = await getDb()
-		.selectDistinct({ userId: linkedAccounts.userId })
+		.select({
+			userId: linkedAccounts.userId,
+			source: linkedAccounts.source,
+			lastSyncAt: linkedAccounts.lastSyncAt
+		})
 		.from(linkedAccounts)
 		.where(or(isNotNull(linkedAccounts.externalId), isNotNull(linkedAccounts.accessTokenEnc)));
-	const userIds = rows.map((r) => r.userId);
-	const latest = await latestScoreAtByUserGame(userIds);
-	const cutoff = Date.now() - STALE_MS;
-	const due: number[] = [];
-	for (const userId of userIds) {
-		const stale = GAMES.some((game) => {
-			const at = latest.get(`${userId}:${game}`);
-			return !at || at.getTime() < cutoff;
-		});
-		if (stale) due.push(userId);
+	const now = Date.now();
+	const due = new Set<number>();
+	for (const row of rows) {
+		if (bindingNeedsSync(row.source, row.lastSyncAt, now, STALE_MS)) due.add(row.userId);
 	}
-	return due;
+	return [...due];
 }
 
 async function main(): Promise<void> {

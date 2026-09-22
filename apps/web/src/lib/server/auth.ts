@@ -20,13 +20,49 @@ export function isApiKeyScope(v: string): v is ApiKeyScope {
 	return (KEY_SCOPES as readonly string[]).includes(v);
 }
 
+export type ApiErrorCode =
+	| 'bad_request'
+	| 'unauthorized'
+	| 'forbidden'
+	| 'not_found'
+	| 'not_synced'
+	| 'qq_unavailable'
+	| 'rate_limited'
+	| 'upstream'
+	| 'conflict'
+	| 'internal';
+
+export function apiErrorCodeForStatus(status: number): ApiErrorCode {
+	switch (status) {
+		case 401:
+			return 'unauthorized';
+		case 403:
+			return 'forbidden';
+		case 404:
+			return 'not_found';
+		case 409:
+			return 'conflict';
+		case 429:
+			return 'rate_limited';
+		case 500:
+			return 'internal';
+		case 502:
+			return 'upstream';
+		default:
+			return 'bad_request';
+	}
+}
+
 export class AuthError extends Error {
+	readonly code: ApiErrorCode;
 	constructor(
 		public status: number,
-		message: string
+		message: string,
+		code?: ApiErrorCode
 	) {
 		super(message);
 		this.name = 'AuthError';
+		this.code = code ?? apiErrorCodeForStatus(status);
 	}
 }
 
@@ -235,8 +271,9 @@ export interface ApiIdentity {
 }
 
 const RATE_LIMIT_PER_MIN = 120;
+const BOT_RATE_PER_MIN = 600;
 
-/** 开放 API 鉴权：Authorization: Bearer rv_xxx；限流按 userId */
+/** 开放 API 鉴权：Authorization: Bearer rv_xxx。个人 Key 与 Bot Key 分桶限流。 */
 export async function authApiKey(request: Request): Promise<ApiIdentity> {
 	const auth = request.headers.get('authorization') ?? '';
 	const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
@@ -254,8 +291,17 @@ export async function authApiKey(request: Request): Promise<ApiIdentity> {
 		.limit(1);
 	if (rows.length === 0) throw new AuthError(401, 'API Key 无效或已吊销');
 	const row = rows[0];
-	if (!takeToken(`api:${row.userId}`, RATE_LIMIT_PER_MIN, 60_000)) {
-		throw new AuthError(429, '请求过于频繁，请稍后再试（每账号每分钟 120 次）');
+	const scope = isApiKeyScope(row.scope) ? row.scope : 'self';
+	const limit = scope === 'bot' ? BOT_RATE_PER_MIN : RATE_LIMIT_PER_MIN;
+	const bucket = scope === 'bot' ? `api:bot:${row.userId}` : `api:${row.userId}`;
+	if (!takeToken(bucket, limit, 60_000)) {
+		throw new AuthError(
+			429,
+			scope === 'bot'
+				? '请求过于频繁，请稍后再试（Bot Key 每分钟 600 次）'
+				: '请求过于频繁，请稍后再试（每账号每分钟 120 次）',
+			'rate_limited'
+		);
 	}
 	getDb()
 		.update(apiKeys)
@@ -266,6 +312,6 @@ export async function authApiKey(request: Request): Promise<ApiIdentity> {
 		keyId: row.keyId,
 		userId: row.userId,
 		username: row.username,
-		scope: isApiKeyScope(row.scope) ? row.scope : 'self'
+		scope
 	};
 }
